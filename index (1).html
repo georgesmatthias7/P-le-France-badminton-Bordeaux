@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lab Performance — Suivi des séances</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#121820;--ink2:#28313c;--paper:#f3f1ec;--card:#fff;--line:#e3dfd6;--line2:#eeebe4;--muted:#6a6f78;--soft:#f8f7f3;
+  --match:#d64527;--match-s:#fbe9e3;--ent:#2458c8;--ent-s:#e6edfc;--prepa:#0d8a61;--prepa-s:#e0f3eb;
+  --hr:#d64527;--acc:#2458c8;--vid:#7a4fd0;--ok:#0d8a61;--warn:#c98a0b;
+  --r:14px;--sh:0 1px 2px rgba(18,24,32,.05),0 8px 28px -14px rgba(18,24,32,.22);
+  --mono:'JetBrains Mono',ui-monospace,monospace;--disp:'Barlow Condensed',Inter,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font:14px/1.45 Inter,system-ui,sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+/* Sidebar */
+.side{background:var(--ink);color:#d9dde3;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px;overflow:auto}
+.brand{display:flex;align-items:center;gap:11px;margin:0 8px 26px}
+.brand .mk{width:36px;height:36px;border-radius:10px;background:linear-gradient(140deg,#d64527 0%,#ef8a3a 100%);display:grid;place-items:center;flex:none}
+.brand b{display:block;font:700 21px/1 var(--disp);letter-spacing:.05em;text-transform:uppercase;color:#fff}
+.brand small{display:block;font-size:10.5px;color:#8b93a0;letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav .sec{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#6f7885;margin:16px 12px 6px}
+.nav a{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:#c3c9d2;text-decoration:none;font-weight:500}
+.nav a svg{width:17px;height:17px;flex:none;opacity:.85}
+.nav a:hover{background:#1c2430;color:#fff}
+.nav a.on{background:#fff;color:var(--ink)}
+.nav a .cnt{margin-left:auto;font:500 11px var(--mono);opacity:.65}
+.side .foot{margin-top:auto;padding:14px 10px 2px;border-top:1px solid #222b37;font-size:12px;color:#8b93a0}
+.side .foot b{color:#e7eaee;font-weight:600}
+.undo{display:flex;gap:6px;margin:10px 0 2px}
+.undo button{flex:1;background:#1c2430;border:1px solid #2a3442;color:#d9dde3;border-radius:8px;padding:7px 8px;font-size:12px;cursor:pointer}
+.undo button:disabled{opacity:.35;cursor:default}
+.undo button:not(:disabled):hover{background:#263040}
+main{padding:30px 38px 70px;min-width:0}
+/* Typo */
+.eyebrow{font:600 11px/1.2 Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1.t{font:700 38px/1 var(--disp);text-transform:uppercase;letter-spacing:.015em;margin:6px 0 0}
+h2.t{font:700 22px/1.1 var(--disp);text-transform:uppercase;letter-spacing:.03em;margin:0}
+h3.t{font:600 13px/1.2 Inter;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--ink2)}
+.sub{color:var(--muted);margin-top:6px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:24px}
+.ph .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background .12s,border-color .12s}
+.btn:hover{background:var(--soft);border-color:#d3cec3}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.pri:hover{background:#26303c}
+.btn.danger{color:#b4321a}
+.btn.danger:hover{background:#fdf0ec;border-color:#f0c4b8}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn.ic{padding:6px 8px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn svg{width:15px;height:15px}
+.link{background:none;border:0;padding:0;color:var(--acc);cursor:pointer;font-weight:600}
+input.f,select.f,textarea.f{width:100%;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;outline:none}
+input.f:focus,select.f:focus,textarea.f:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(18,24,32,.08)}
+label.l{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin:0 0 5px}
+.fld{margin-bottom:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.pad{padding:18px 20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0;border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden;box-shadow:var(--sh)}
+.kpi{padding:14px 18px;border-right:1px solid var(--line2)}
+.kpi:last-child{border-right:0}
+.kpi .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .v{font:600 24px/1.1 var(--mono);margin-top:6px;letter-spacing:-.02em}
+.kpi .v small{font:500 12px Inter;color:var(--muted);margin-left:3px;letter-spacing:0}
+/* Category */
+.cat{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;letter-spacing:.02em}
+.cat i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.cat.match{background:var(--match-s);color:var(--match)}
+.cat.entrainement{background:var(--ent-s);color:var(--ent)}
+.cat.prepa{background:var(--prepa-s);color:var(--prepa)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip i{width:8px;height:8px;border-radius:50%}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* Players grid */
+.search{position:relative}
+.search input{padding-left:34px;width:240px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted)}
+.teamstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.tcard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;box-shadow:var(--sh)}
+.tcard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,var(--ink))}
+.tcard .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tcard .v{font:700 34px/1 var(--disp);margin-top:8px}
+.tcard .s{font-size:12px;color:var(--muted);margin-top:4px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.pcard{display:block;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px;text-decoration:none;box-shadow:var(--sh);transition:transform .15s,box-shadow .15s,border-color .15s}
+.pcard:hover{transform:translateY(-2px);border-color:#cfc9bd;box-shadow:0 2px 4px rgba(18,24,32,.05),0 16px 32px -16px rgba(18,24,32,.3)}
+.pc-top{display:flex;gap:13px;align-items:center}
+.av{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font:700 19px/1 var(--disp);letter-spacing:.04em;color:#fff;background:hsl(var(--h,210) 35% 28%);flex:none}
+.av.lg{width:72px;height:72px;border-radius:18px;font-size:30px}
+.pn{font:700 22px/1 var(--disp);text-transform:uppercase;letter-spacing:.02em}
+.pm{font-size:12px;color:var(--muted);margin-top:4px}
+.split{display:flex;height:6px;border-radius:6px;overflow:hidden;background:var(--line2);margin:16px 0 10px;gap:2px}
+.split span{display:block;height:100%}
+.pcounts{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2)}
+.pcounts span{display:flex;align-items:center;gap:5px}
+.pcounts b{font:600 13px var(--mono)}
+.pcounts i{width:7px;height:7px;border-radius:50%}
+.plast{font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:11px;border-top:1px solid var(--line2)}
+.empty{text-align:center;padding:56px 20px;color:var(--muted);border:1.5px dashed var(--line);border-radius:var(--r);background:rgba(255,255,255,.5)}
+.empty b{display:block;color:var(--ink);font:700 22px var(--disp);text-transform:uppercase;margin-bottom:6px;letter-spacing:.02em}
+/* Player page */
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:600;margin-bottom:14px}
+.back:hover{color:var(--ink)}
+.phero{display:flex;gap:20px;align-items:center}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:26px}
+.col{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column}
+.colh{padding:16px 18px 14px;border-bottom:1px solid var(--line2);position:relative}
+.colh:before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--c)}
+.colh .ttl{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.colh h2{font:700 22px/1 var(--disp);text-transform:uppercase;letter-spacing:.03em;margin:0;color:var(--c)}
+.colh .meta{display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--muted)}
+.colh .meta b{font:600 15px var(--mono);color:var(--ink);display:block}
+.colb{padding:8px;display:flex;flex-direction:column;gap:6px;min-height:120px}
+.srow{display:block;text-decoration:none;padding:11px 12px;border-radius:10px;border:1px solid transparent}
+.srow:hover{background:var(--soft);border-color:var(--line2)}
+.srow .a{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.srow .ti{font-weight:600}
+.srow .d{font-size:12px;color:var(--muted);white-space:nowrap}
+.srow .b{display:flex;gap:12px;margin-top:6px;font-size:12px;color:var(--ink2);align-items:center;flex-wrap:wrap}
+.srow .b .num{font-size:12px}
+.tags{display:flex;gap:4px;margin-left:auto}
+.tag{font:600 9.5px/1 Inter;letter-spacing:.06em;padding:3px 5px;border-radius:4px;background:var(--line2);color:#9aa0a8}
+.tag.on.hr{background:var(--match-s);color:var(--hr)}
+.tag.on.acc{background:var(--ent-s);color:var(--acc)}
+.tag.on.vid{background:#efe9fb;color:var(--vid)}
+.colempty{color:var(--muted);font-size:12.5px;text-align:center;padding:26px 10px}
+/* Tables */
+table.tb{width:100%;border-collapse:collapse;font-size:13px}
+.tb th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--soft)}
+.tb td{white-space:nowrap;padding:10px 12px;border-bottom:1px solid var(--line2);vertical-align:middle}
+.tb tr:last-child td{border-bottom:0}
+.tb tr.cl{cursor:pointer}
+.tb tr.cl:hover td{background:var(--soft)}
+.tb td.r,.tb th.r{text-align:right}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:7px}
+.tbwrap{overflow:auto}
+/* Session */
+.shead{margin-bottom:18px}
+.seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;color:var(--muted);display:flex;align-items:center;gap:6px}
+.seg button i{width:7px;height:7px;border-radius:50%}
+.seg button.on{background:var(--c,var(--ink));color:#fff}
+.seg button.on i{background:#fff!important}
+.zones{display:flex;height:26px;border-radius:8px;overflow:hidden;margin-top:12px;font:600 10.5px/26px Inter;color:#fff;letter-spacing:.04em}
+.zones span{text-align:center;white-space:nowrap;overflow:hidden;min-width:0}
+.sgrid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.charts{padding:6px 0 10px}
+.ctool{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 16px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.ctool .rd{margin-left:auto;font:500 12px var(--mono);color:var(--muted)}
+.ctool .rd b{color:var(--ink);font-weight:600}
+.trk{position:relative;padding:0 4px}
+.trk .tl{position:absolute;left:52px;top:8px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none;z-index:1;background:rgba(255,255,255,.85);padding:1px 5px;border-radius:4px}
+.trk .tl i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.trk canvas{display:block;width:100%;touch-action:none;cursor:crosshair}
+.trk.lanes canvas{cursor:pointer}
+.trk.ov canvas{cursor:grab}
+.hint{font-size:11.5px;color:var(--muted);padding:6px 18px 0}
+.sidep{display:flex;flex-direction:column;gap:16px;position:sticky;top:16px}
+.vwrap{background:#0b0f14;border-radius:var(--r) var(--r) 0 0;overflow:hidden;aspect-ratio:16/9;display:grid;place-items:center;position:relative}
+.vwrap video{width:100%;height:100%;display:block;background:#000}
+.vdrop{color:#9aa3ae;text-align:center;font-size:12.5px;padding:20px}
+.vdrop b{display:block;color:#fff;font:700 18px var(--disp);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.vbar{padding:10px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid var(--line2)}
+.vbar .vt{font:500 12px var(--mono);color:var(--muted);margin-left:auto}
+.af{padding:16px 18px}
+.af .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.af .rg{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px}
+.af .rg .du{font:500 12px var(--mono);color:var(--muted);padding-bottom:9px;white-space:nowrap}
+.lsel{display:flex;gap:6px;margin-bottom:12px}
+.lsel button{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 4px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted)}
+.lsel button i{width:8px;height:8px;border-radius:2px}
+.lsel button.on{border-color:var(--ink);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.astats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 14px}
+.astats div{background:var(--soft);border-radius:9px;padding:8px 10px}
+.astats .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.astats .v{font:600 15px var(--mono);margin-top:2px}
+.cutbox{margin-top:16px;padding-top:14px;border-top:1px solid var(--line2)}
+.afh{font-size:12.5px;color:var(--muted);line-height:1.55}
+.afh ol{padding-left:18px;margin:8px 0 0}
+.afh li{margin-bottom:4px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.dcell{padding:18px 20px;border-right:1px solid var(--line2)}
+.dcell:last-child{border-right:0}
+.dcell .h{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:8px}
+.dcell .h i{width:10px;height:10px;border-radius:3px}
+.dcell .st{font-size:12.5px;color:var(--muted);margin-bottom:12px;min-height:38px}
+.dcell .st b{color:var(--ink);font-weight:600}
+.dcell .acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.offs{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--muted)}
+.offs input{width:90px;padding:5px 8px;font-family:var(--mono);font-size:12px}
+.qual{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--prepa-s);color:var(--ok)}
+.qual.w{background:#fbf1dc;color:var(--warn)}
+/* Modal */
+#modal{position:fixed;inset:0;display:none;z-index:50}
+#modal.on{display:block}
+.mbg{position:absolute;inset:0;background:rgba(14,18,24,.5);backdrop-filter:blur(2px)}
+.mbox{position:relative;margin:6vh auto;max-width:520px;width:calc(100% - 32px);background:#fff;border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.45);max-height:88vh;overflow:auto}
+.mbox.wide{max-width:900px}
+.mh{padding:22px 24px 4px}
+.mh h2{font:700 26px/1.05 var(--disp);text-transform:uppercase;margin:6px 0 0;letter-spacing:.02em;word-break:break-word}
+.mb{padding:16px 24px}
+.mf{padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--line2)}
+.catpick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.catpick button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:14px 10px;cursor:pointer;text-align:left;transition:all .12s}
+.catpick button b{display:block;font:700 17px/1 var(--disp);text-transform:uppercase;letter-spacing:.03em;color:var(--c)}
+.catpick button span{font-size:11.5px;color:var(--muted);display:block;margin-top:5px}
+.catpick button.on{border-color:var(--c);background:var(--cs);box-shadow:inset 0 0 0 1px var(--c)}
+.impgrid{display:grid;grid-template-columns:260px 1fr;gap:22px}
+.impgrid canvas{width:100%;height:190px;display:block;border:1px solid var(--line2);border-radius:10px;background:var(--soft)}
+.ist{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.ist div{background:var(--soft);border-radius:9px;padding:8px 10px;font-size:11.5px;color:var(--muted)}
+.ist b{display:block;font:600 15px var(--mono);color:var(--ink)}
+.note{font-size:12px;color:var(--muted);background:var(--soft);border-radius:9px;padding:10px 12px;line-height:1.5}
+.note.w{background:#fbf1dc;color:#7a5406}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:10px;cursor:pointer}
+.prog{height:6px;background:var(--line2);border-radius:6px;overflow:hidden;margin-top:10px}
+.prog span{display:block;height:100%;background:var(--ink);width:0;transition:width .2s}
+/* Toast */
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.tst{background:var(--ink);color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:14px;align-items:center;box-shadow:0 14px 40px -10px rgba(0,0,0,.5);font-size:13px;pointer-events:auto;animation:tin .18s ease-out}
+.tst.err{background:#8f2410}
+.tst button{background:#2b3542;border:0;color:#fff;border-radius:8px;padding:5px 10px;font-weight:600;font-size:12px;cursor:pointer}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+.banner{background:#fbf1dc;color:#7a5406;border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:18px}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+.trash-it{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line2)}
+.trash-it:last-child{border-bottom:0}
+.trash-it .w{flex:1;min-width:0}
+.trash-it .w b{display:block}
+.trash-it .w span{font-size:12px;color:var(--muted)}
+.typ{display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--line2)}
+.typ:last-child{border-bottom:0}
+.typ input[type=color]{width:34px;height:30px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;cursor:pointer}
+.typ input.f{max-width:340px}
+.req{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;gap:12px;align-items:flex-start}
+.req:last-child{border-bottom:0}
+.req .w{flex:1}
+.req .m{font-size:12px;color:var(--muted);margin-top:4px}
+.req.done .tx{text-decoration:line-through;color:var(--muted)}
+.ro .w-only{display:none!important}
+#auth{display:none}
+body.authmode .app{display:none}
+body.authmode #auth{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);min-height:100vh}
+.au-side{background:var(--ink);color:#d9dde3;padding:36px 48px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.au-side:after{content:"";position:absolute;right:-120px;bottom:-140px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(214,69,39,.35),transparent 65%)}
+.au-side .brand{margin:0}
+.au-pitch{margin:auto 0;max-width:520px;position:relative;z-index:1}
+.au-pitch h1{font:700 52px/1 var(--disp);text-transform:uppercase;color:#fff;margin:0 0 18px;letter-spacing:.01em}
+.au-pitch p{color:#9aa3ae;font-size:15px;line-height:1.6;margin:0 0 24px}
+.au-tags{display:flex;gap:8px;flex-wrap:wrap}
+.au-tags span{border:1px solid #2c3644;border-left:3px solid var(--c);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:600;color:#e6e9ed}
+.au-main{display:grid;place-items:center;padding:30px}
+.au-card{width:100%;max-width:400px}
+.au-card h2{font:700 34px/1 var(--disp);text-transform:uppercase;margin:6px 0 22px}
+.au-p{color:var(--muted);font-size:13.5px;line-height:1.55}
+.au-s{font-size:12px;text-align:center}
+.au-msg{font-size:13px;min-height:18px;margin:-4px 0 12px;color:var(--ok)}
+.au-msg.err{color:#b4321a}
+.side .foot .link{color:#c3c9d2;font-weight:500;font-size:12px}
+@media (max-width:900px){body.authmode #auth{grid-template-columns:1fr}.au-side{padding:24px}.au-pitch{margin:30px 0 10px}.au-pitch h1{font-size:34px}}
+@media (max-width:1180px){.sgrid{grid-template-columns:1fr}.sidep{position:static;display:grid;grid-template-columns:1fr 1fr}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px}
+  .brand{margin:0 12px 0 4px}.nav{flex-direction:row;flex-wrap:wrap}.nav .sec{display:none}.side .foot{display:none}
+  main{padding:20px 16px 60px}
+  .cols{grid-template-columns:1fr}.teamstrip{grid-template-columns:1fr 1fr}.dgrid{grid-template-columns:1fr}.dcell{border-right:0;border-bottom:1px solid var(--line2)}
+  .sidep{grid-template-columns:1fr}.impgrid{grid-template-columns:1fr}.catpick{grid-template-columns:1fr}
+  .search input{width:100%}
+}
+</style>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="auth"></div>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mk"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></div>
+      <div><b>Lab Perf</b><small>Suivi des séances</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="foot">
+      <div id="who">Connexion…</div>
+      <div class="undo">
+        <button id="bUndo" title="Annuler (Ctrl+Z)" disabled>↶ Annuler</button>
+        <button id="bRedo" title="Rétablir (Ctrl+Maj+Z)" disabled>Rétablir ↷</button>
+      </div>
+      <div id="undoLbl" style="font-size:11px;margin-top:6px;min-height:14px"></div>
+    </div>
+  </aside>
+  <main id="main"><div class="loading">Chargement…</div></main>
+</div>
+<div id="modal"></div>
+<div id="toast"></div>
+
+<!-- ============ TRAITEMENT DES DONNÉES (fonctions pures) ============ -->
+<script id="proc">
+'use strict';
+const P = (() => {
+  const median = a => { const b = Float64Array.from(a).sort(); const n = b.length; if (!n) return NaN; return n % 2 ? b[(n - 1) >> 1] : (b[n / 2 - 1] + b[n / 2]) / 2; };
+  const quantile = (a, q) => { const b = Float64Array.from(a.filter(Number.isFinite)).sort(); if (!b.length) return NaN; const i = Math.min(b.length - 1, Math.max(0, Math.round(q * (b.length - 1)))); return b[i]; };
+
+  /* ---------- Lecture CSV ---------- */
+  function splitLine(line, d) {
+    if (line.indexOf('"') < 0) return line.split(d);
+    const out = []; let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"') q = true; else if (c === d) { out.push(cur); cur = ''; } else cur += c;
+    }
+    out.push(cur); return out;
+  }
+  const isNum = s => /^\s*[-+]?(\d+([.,]\d*)?|[.,]\d+)([eE][-+]?\d+)?\s*$/.test(s);
+  const isTime = s => /^\s*\d{1,2}:\d{2}(:\d{2})?([.,]\d+)?\s*$/.test(s) || /^\s*\d{4}-\d{2}-\d{2}[T ]\d/.test(s) || /^\s*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}[ T]\d/.test(s);
+  function detectDelim(lines) {
+    let best = ',', bestScore = -1;
+    for (const d of ['\t', ';', ',', '|']) { // ';' prioritaire : souvent utilisé avec la virgule décimale
+      const freq = {};
+      for (const l of lines) { const c = splitLine(l, d).length; if (c > 1) freq[c] = (freq[c] || 0) + 1; }
+      let m = 0, mc = 0; for (const k in freq) if (freq[k] > mc || (freq[k] === mc && +k > m)) { mc = freq[k]; m = +k; }
+      const score = mc * 100 + m;
+      if (mc > 0 && score > bestScore) { bestScore = score; best = d; }
+    }
+    return best;
+  }
+  function parseTable(text) {
+    text = text.replace(/^﻿/, '');
+    const lines = text.split(/\r\n|\n|\r/);
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    const sample = lines.filter(l => l.trim()).slice(0, 80);
+    if (!sample.length) throw new Error('Fichier vide');
+    const d = detectDelim(sample.slice(Math.min(10, Math.floor(sample.length / 3))));
+    let hi = -1;
+    for (let i = 0; i < Math.min(lines.length - 1, 80); i++) {
+      const r = splitLine(lines[i], d); if (r.length < 2) continue;
+      const neH = r.filter(c => c.trim()).length;
+      const txt = r.filter(c => c.trim() && !isNum(c) && !isTime(c)).length;
+      if (txt < 1 || txt / Math.max(1, neH) < 0.6) continue;
+      let ok = 0, tot = 0, firstOk = null;
+      for (let j = i + 1; j < Math.min(lines.length, i + 8); j++) {
+        if (!lines[j].trim()) continue; tot++;
+        const rr = splitLine(lines[j], d); const ne = rr.filter(c => c.trim());
+        const nc = ne.filter(c => isNum(c) || isTime(c)).length;
+        const good = rr.length >= r.length - 1 && ne.length >= 1 && nc / ne.length >= 0.75;
+        if (good) ok++; if (firstOk === null) firstOk = good;
+      }
+      if (tot && firstOk && ok / tot >= 0.8) { hi = i; break; }
+    }
+    let header, start;
+    if (hi < 0) {
+      const fi = lines.findIndex(l => l.trim());
+      header = splitLine(lines[fi], d).map((_, k) => 'Colonne ' + (k + 1)); start = fi;
+    } else { header = splitLine(lines[hi], d).map(h => h.trim().replace(/^"|"$/g, '') || '(sans nom)'); start = hi + 1; }
+    const cols = header.map(() => []);
+    for (let i = start; i < lines.length; i++) {
+      const l = lines[i]; if (!l.trim()) continue;
+      const r = splitLine(l, d);
+      for (let k = 0; k < header.length; k++) cols[k].push(r[k] !== undefined ? r[k].trim() : '');
+    }
+    const meta = hi > 0 ? lines.slice(0, hi).join('\n') : '';
+    return { header, cols, delim: d, rows: cols[0] ? cols[0].length : 0, meta, metaStart: metaAbsStart(meta) };
+  }
+  function metaAbsStart(meta) {
+    if (!meta) return null;
+    const dm = meta.match(/(\d{2})[-\/.](\d{2})[-\/.](\d{4})/) || null;
+    const im = meta.match(/(\d{4})-(\d{2})-(\d{2})/);
+    const tm = meta.match(/\b(\d{1,2}):(\d{2}):(\d{2})\b/);
+    let y, mo, da;
+    if (im) { y = +im[1]; mo = +im[2]; da = +im[3]; } else if (dm) { da = +dm[1]; mo = +dm[2]; y = +dm[3]; } else return null;
+    const dt = new Date(y, mo - 1, da, tm ? +tm[1] : 0, tm ? +tm[2] : 0, tm ? +tm[3] : 0);
+    return isNaN(dt) ? null : dt.getTime();
+  }
+  const toNum = s => { if (s == null || s === '') return NaN; return +String(s).replace(',', '.'); };
+  const normH = h => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+
+  function guessColumns(tab, kind) {
+    const N = tab.header.map(normH);
+    const pick = (test) => N.findIndex((h, i) => test(h, i));
+    const g = { time: -1, hr: -1, x: -1, y: -1, z: -1, mag: -1 };
+    g.time = pick(h => /(time|temps|stamp|horodat|datetime|heure|clock|elapsed)/.test(h) && !/(zone|rate)/.test(h));
+    if (g.time < 0) g.time = pick(h => /^(t|s|sec|secs|seconds|secondes|ms|millis|date)$/.test(h));
+    if (kind === 'hr') {
+      g.hr = pick(h => /^(hr|hrbpm|heartrate|heartratebpm|fc|fcbpm|bpm|pulse|frequencecardiaque|cardio)$/.test(h));
+      if (g.hr < 0) g.hr = pick(h => /(heart|hrbpm|^hr|frequencecard|cardiaque|bpm|pulse|^fc)/.test(h) && !/(max|min|zone|avg|moy|rr)/.test(h));
+      if (g.hr < 0) g.hr = pick(h => /(^rr|rrinterval|^ibi|rrms)/.test(h));
+      if (g.hr < 0) { // première colonne numérique hors temps
+        for (let k = 0; k < tab.cols.length; k++) if (k !== g.time && tab.cols[k].slice(0, 20).some(isNum)) { g.hr = k; break; }
+      }
+    } else {
+      const bad = /(gyro|rot|mag(?!n)|gps|lat|lon|max|min|orient|gravity|quat|angle|temp|press|alt|speed|vitesse)/;
+      for (const ax of ['x', 'y', 'z']) {
+        const re1 = new RegExp('(^|acc|accel|acceleration|accelerometer|accelerometre|linear|lin|a)' + ax + '(g|ms2|mg|axis|axe|acc)?$');
+        const re2 = new RegExp('^' + ax + '(acc|accel|axis|axe|g|ms2|mg)?$');
+        g[ax] = pick(h => (re1.test(h) || re2.test(h)) && !bad.test(h));
+        if (g[ax] < 0) g[ax] = pick(h => h.includes('acc') && h.endsWith(ax) && !bad.test(h));
+      }
+      if (g.x < 0 || g.y < 0 || g.z < 0) {
+        g.mag = pick(h => /(magn|vectormag|^vm|norm|resultant|svm|enmo)/.test(h));
+        if (g.mag < 0) { const nums = []; for (let k = 0; k < tab.cols.length; k++) if (k !== g.time && tab.cols[k].slice(0, 20).some(isNum)) nums.push(k); if (nums.length >= 3) { g.x = nums[0]; g.y = nums[1]; g.z = nums[2]; } else if (nums.length) g.mag = nums[0]; }
+      }
+    }
+    return g;
+  }
+
+  /* ---------- Temps ---------- */
+  const UNITS = { s: 1, ms: 1e-3, us: 1e-6, ns: 1e-9 };
+  function clockToSec(s) { const m = s.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:[.,](\d+))?$/); if (!m) return NaN; let v; if (m[3] !== undefined) v = +m[1] * 3600 + +m[2] * 60 + +m[3]; else v = +m[1] * 60 + +m[2]; if (m[4]) v += +('0.' + m[4]); return v; }
+  function dateToMs(s) {
+    s = s.trim();
+    let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:[.,](\d+))?/);
+    if (m) { let y = +m[3]; if (y < 100) y += 2000; const ms = m[7] ? Math.round(+('0.' + m[7]) * 1000) : 0; return new Date(y, +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0), ms).getTime(); }
+    const iso = s.replace(' ', 'T');
+    const v = Date.parse(iso); return v;
+  }
+  function parseTimeCol(col, kind, unit) {
+    const first = col.find(s => s && s.trim());
+    if (first == null) return null;
+    const n = col.length; const raw = new Float64Array(n);
+    let mode;
+    if (!isNum(first) && (/^\d{4}-\d{2}-\d{2}/.test(first.trim()) || /^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}[ T]/.test(first.trim()))) mode = 'date';
+    else if (/^\s*\d{1,2}:\d{2}/.test(first)) mode = 'clock';
+    else mode = 'num';
+    if (mode === 'date') { for (let i = 0; i < n; i++) raw[i] = col[i] ? dateToMs(col[i]) / 1000 : NaN; }
+    else if (mode === 'clock') { let add = 0, prev = -Infinity; for (let i = 0; i < n; i++) { let v = col[i] ? clockToSec(col[i]) : NaN; if (Number.isFinite(v)) { if (v + add < prev - 43200) add += 86400; v += add; prev = v; } raw[i] = v; } }
+    else { for (let i = 0; i < n; i++) raw[i] = toNum(col[i]); }
+    // unité
+    let u = 1, unitUsed = 's', abs = null;
+    const diffs = []; let last = NaN;
+    for (let i = 0; i < n && diffs.length < 4000; i++) { const v = raw[i]; if (Number.isFinite(v)) { if (Number.isFinite(last) && v > last) diffs.push(v - last); last = v; } }
+    const md = diffs.length ? median(diffs) : NaN;
+    if (mode === 'num') {
+      if (unit && unit !== 'auto') { u = UNITS[unit]; unitUsed = unit; }
+      else if (Number.isFinite(md)) {
+        const target = kind === 'hr' ? 1 : 0.02;
+        let best = 's', bd = Infinity;
+        for (const k of ['s', 'ms', 'us', 'ns']) { const dd = Math.abs(Math.log10(md * UNITS[k] / target)); if (dd < bd) { bd = dd; best = k; } }
+        u = UNITS[best]; unitUsed = best;
+      }
+    }
+    let f = NaN; for (let i = 0; i < n; i++) if (Number.isFinite(raw[i])) { f = raw[i]; break; }
+    const firstSec = f * u;
+    if (mode === 'date') abs = f * 1000;
+    else if (mode === 'num' && firstSec > 9.4e8 && firstSec < 4.2e9) abs = firstSec * 1000;
+    const t = new Float64Array(n);
+    for (let i = 0; i < n; i++) t[i] = (raw[i] - f) * u;
+    return { t, abs: Number.isFinite(abs) ? abs : null, mode, unit: unitUsed, md: md * u };
+  }
+
+  /* ---------- Filtres ---------- */
+  function biquadLP(fc, fs, Q = Math.SQRT1_2) {
+    const w0 = 2 * Math.PI * fc / fs, c = Math.cos(w0), s = Math.sin(w0), al = s / (2 * Q);
+    const a0 = 1 + al; return [(1 - c) / 2 / a0, (1 - c) / a0, (1 - c) / 2 / a0, -2 * c / a0, (1 - al) / a0];
+  }
+  function filt(x, co) {
+    const [b0, b1, b2, a1, a2] = co; const n = x.length; const y = new Float64Array(n); if (!n) return y;
+    let x1 = x[0], x2 = x[0], y1 = x[0], y2 = x[0];
+    for (let i = 0; i < n; i++) { const xi = x[i]; const yi = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = xi; y2 = y1; y1 = yi; y[i] = yi; }
+    return y;
+  }
+  function filtfilt(x, co) { let y = filt(x, co); y.reverse(); y = filt(y, co); y.reverse(); return y; }
+  function lowpass(x, fc, fs, order4 = true) {
+    if (!(fc > 0) || fc >= fs * 0.49) return Float64Array.from(x);
+    const co = biquadLP(fc, fs); let y = filtfilt(x, co); if (order4) y = filtfilt(y, co); return y;
+  }
+  function fillNaN(x) { // interpolation linéaire des trous pour filtrage
+    const n = x.length; const y = Float64Array.from(x); let i = 0; let lastI = -1;
+    for (i = 0; i < n; i++) {
+      if (Number.isFinite(y[i])) {
+        if (lastI < i - 1) { const a = lastI >= 0 ? y[lastI] : y[i]; for (let k = lastI + 1; k < i; k++) y[k] = lastI >= 0 ? a + (y[i] - a) * (k - lastI) / (i - lastI) : y[i]; }
+        lastI = i;
+      }
+    }
+    if (lastI >= 0 && lastI < n - 1) for (let k = lastI + 1; k < n; k++) y[k] = y[lastI];
+    if (lastI < 0) y.fill(0);
+    return y;
+  }
+  function median5Clean(x, kMad = 8, floor = 1.5) { // suppression des pics isolés
+    const n = x.length; const med = new Float64Array(n); const w = [0, 0, 0, 0, 0];
+    for (let i = 0; i < n; i++) { for (let k = -2; k <= 2; k++) w[k + 2] = x[Math.min(n - 1, Math.max(0, i + k))]; const s = w.slice().sort((a, b) => a - b); med[i] = s[2]; }
+    const res = []; for (let i = 0; i < n; i += Math.max(1, Math.floor(n / 20000))) res.push(Math.abs(x[i] - med[i]));
+    const mad = median(res) * 1.4826; const thr = Math.max(floor, kMad * mad);
+    const y = Float64Array.from(x); let c = 0;
+    for (let i = 0; i < n; i++) if (Math.abs(x[i] - med[i]) > thr) { y[i] = med[i]; c++; }
+    return { y, spikes: c };
+  }
+
+  /* ---------- Cardio ---------- */
+  function processHR(t, v, o) {
+    o = Object.assign({ clean: true, smooth: 0, maxGap: 15, isRR: false }, o || {});
+    let T = [], V = [], rangeOut = 0, nRaw = 0;
+    if (o.isRR) { // intervalles RR (ms) -> FC instantanée
+      let acc = 0;
+      for (let i = 0; i < v.length; i++) { const rr = v[i]; if (!Number.isFinite(rr) || rr <= 0) continue; nRaw++; acc += rr / 1000; const tt = Number.isFinite(t[i]) && o.useTime ? t[i] : acc; if (rr < 250 || rr > 2400) { rangeOut++; continue; } T.push(tt); V.push(60000 / rr); }
+    } else {
+      for (let i = 0; i < v.length; i++) { if (!Number.isFinite(t[i]) || !Number.isFinite(v[i])) continue; nRaw++; if (v[i] < 30 || v[i] > 235) { rangeOut++; continue; } T.push(t[i]); V.push(v[i]); }
+    }
+    if (!T.length) return null;
+    let t0 = Infinity, tEnd = -Infinity; for (const x of T) { if (x < t0) t0 = x; if (x > tEnd) tEnd = x; }
+    const n = Math.max(1, Math.round(tEnd - t0) + 1);
+    if (n > 60 * 60 * 30) throw new Error('Durée trop longue (> 30 h) : vérifiez la colonne de temps.');
+    const sum = new Float64Array(n), cnt = new Uint32Array(n);
+    for (let i = 0; i < T.length; i++) { const k = Math.round(T[i] - t0); if (k >= 0 && k < n) { sum[k] += V[i]; cnt[k]++; } }
+    const raw = new Float64Array(n); for (let k = 0; k < n; k++) raw[k] = cnt[k] ? sum[k] / cnt[k] : NaN;
+    let y = Float64Array.from(raw); let outliers = 0;
+    if (o.clean) {
+      const W = 6, buf = [];
+      for (let k = 0; k < n; k++) {
+        if (!Number.isFinite(raw[k])) continue;
+        buf.length = 0; for (let j = Math.max(0, k - W); j <= Math.min(n - 1, k + W); j++) if (Number.isFinite(raw[j])) buf.push(raw[j]);
+        if (buf.length < 4) continue;
+        const m = median(buf); const mad = median(buf.map(b => Math.abs(b - m))) * 1.4826;
+        if (Math.abs(raw[k] - m) > Math.max(3 * mad, 10)) { y[k] = NaN; outliers++; }
+      }
+    }
+    let interp = 0, gaps = 0;
+    { let last = -1;
+      for (let k = 0; k < n; k++) {
+        if (Number.isFinite(y[k])) {
+          const g = k - last - 1;
+          if (last >= 0 && g > 0) { if (g <= o.maxGap) { for (let j = last + 1; j < k; j++) y[j] = y[last] + (y[k] - y[last]) * (j - last) / (k - last); interp += g; } else gaps += g; }
+          last = k;
+        }
+      }
+    }
+    if (o.smooth > 1) {
+      const h = Math.floor(o.smooth / 2); const z = new Float64Array(n);
+      for (let k = 0; k < n; k++) { if (!Number.isFinite(y[k])) { z[k] = NaN; continue; } let s = 0, c = 0; for (let j = k - h; j <= k + h; j++) if (j >= 0 && j < n && Number.isFinite(y[j])) { s += y[j]; c++; } z[k] = s / c; }
+      y = z;
+    }
+    let s = 0, c = 0, mx = -Infinity, mn = Infinity;
+    for (let k = 0; k < n; k++) if (Number.isFinite(y[k])) { s += y[k]; c++; if (y[k] > mx) mx = y[k]; if (y[k] < mn) mn = y[k]; }
+    const corrected = rangeOut + outliers;
+    return { v: y, raw, dt: 1, t0, dur: n,
+      stats: { nRaw, rangeOut, outliers, interp, gaps, pctCorr: nRaw ? (corrected / nRaw) * 100 : 0, cover: c / n * 100 },
+      summary: { avg: c ? s / c : null, max: c ? mx : null, min: c ? mn : null } };
+  }
+
+  /* ---------- Accéléromètre ---------- */
+  function processAcc(t, X, Y, Z, o) {
+    o = Object.assign({ unit: 'auto', lp: 15, out: 'auto', spikes: true, fs: null }, o || {});
+    const isMag = !Y;
+    const idx = []; for (let i = 0; i < X.length; i++) if (Number.isFinite(t[i]) && Number.isFinite(X[i]) && (isMag || (Number.isFinite(Y[i]) && Number.isFinite(Z[i])))) idx.push(i);
+    if (idx.length < 20) return null;
+    let sorted = true; for (let k = 1; k < idx.length; k++) if (t[idx[k]] < t[idx[k - 1]]) { sorted = false; break; }
+    if (!sorted) idx.sort((a, b) => t[a] - t[b]);
+    const n = idx.length; const T = new Float64Array(n);
+    let x = new Float64Array(n), y = isMag ? null : new Float64Array(n), z = isMag ? null : new Float64Array(n);
+    for (let k = 0; k < n; k++) { const i = idx[k]; T[k] = t[i] - t[idx[0]]; x[k] = X[i]; if (!isMag) { y[k] = Y[i]; z[k] = Z[i]; } }
+    const dts = []; for (let k = 1; k < n && dts.length < 20000; k++) { const d = T[k] - T[k - 1]; if (d > 0) dts.push(d); }
+    const fs = o.fs || (dts.length ? 1 / median(dts) : 50);
+    // unité
+    const mags = []; const step = Math.max(1, Math.floor(n / 20000));
+    for (let k = 0; k < n; k += step) mags.push(isMag ? Math.abs(x[k]) : Math.hypot(x[k], y[k], z[k]));
+    const mm = median(mags);
+    let scale = 1, unitDet = o.unit;
+    if (o.unit === 'g') scale = 1; else if (o.unit === 'ms2') scale = 1 / 9.80665; else if (o.unit === 'mg') scale = 1 / 1000;
+    else {
+      if (isMag) { unitDet = mm > 4 && mm < 25 ? 'ms2' : (mm > 300 ? 'mg' : 'g'); scale = unitDet === 'ms2' ? 1 / 9.80665 : unitDet === 'mg' ? 1 / 1000 : 1; }
+      else if (mm > 0.55 && mm < 1.7) { unitDet = 'g'; scale = 1; }
+      else if (mm > 5.5 && mm < 16) { unitDet = 'ms2'; scale = 1 / 9.80665; }
+      else if (mm > 550 && mm < 1700) { unitDet = 'mg'; scale = 1 / 1000; }
+      else { unitDet = 'brut'; scale = mm > 0 ? 1 / mm : 1; }
+    }
+    if (scale !== 1) { for (let k = 0; k < n; k++) { x[k] *= scale; if (!isMag) { y[k] *= scale; z[k] *= scale; } } }
+    let spikes = 0;
+    if (o.spikes) { for (const key of isMag ? ['x'] : ['x', 'y', 'z']) { const r = median5Clean(key === 'x' ? x : key === 'y' ? y : z); spikes += r.spikes; if (key === 'x') x = r.y; else if (key === 'y') y = r.y; else z = r.y; } }
+    const lp = Math.min(o.lp || 0, fs * 0.45);
+    if (o.lp > 0) { x = lowpass(x, lp, fs); if (!isMag) { y = lowpass(y, lp, fs); z = lowpass(z, lp, fs); } }
+    // gravité (passe-bas 0,3 Hz) -> accélération dynamique
+    const gfc = Math.min(0.3, fs * 0.2);
+    const dyn = new Float64Array(n);
+    if (isMag) { const g = lowpass(x, gfc, fs); for (let k = 0; k < n; k++) dyn[k] = Math.abs(x[k] - g[k]); }
+    else { const gx = lowpass(x, gfc, fs), gy = lowpass(y, gfc, fs), gz = lowpass(z, gfc, fs); for (let k = 0; k < n; k++) dyn[k] = Math.hypot(x[k] - gx[k], y[k] - gy[k], z[k] - gz[k]); }
+    const dur = T[n - 1];
+    if (dur > 60 * 60 * 30) throw new Error('Durée trop longue (> 30 h) : vérifiez la colonne de temps et son unité.');
+    let out = o.out === 'auto' ? (dur <= 45 * 60 ? 10 : dur <= 2.5 * 3600 ? 5 : 2) : +o.out;
+    out = Math.min(out, fs);
+    const nb = Math.max(1, Math.floor(dur * out) + 1);
+    const s = new Float64Array(nb), c = new Uint32Array(nb);
+    const n1 = Math.max(1, Math.floor(dur) + 1); const pl = new Float64Array(n1); const plc = new Uint32Array(n1);
+    const gapThr = 5 / fs; let gapsSec = 0;
+    for (let k = 0; k < n; k++) {
+      const b = Math.floor(T[k] * out); s[b] += dyn[k]; c[b]++;
+      if (k > 0) {
+        const dt = T[k] - T[k - 1];
+        if (dt > gapThr) { gapsSec += dt; continue; }
+        const inc = isMag ? Math.abs(x[k] - x[k - 1]) : Math.hypot(x[k] - x[k - 1], y[k] - y[k - 1], z[k] - z[k - 1]);
+        const sb = Math.floor(T[k]); pl[sb] += inc; plc[sb]++;
+      }
+    }
+    // PlayerLoad (forme Catapult) : somme des variations instantanées de l'accélération / 100
+    for (let k = 0; k < n1; k++) pl[k] = plc[k] ? pl[k] / 100 : NaN;
+    const v = new Float64Array(nb); for (let k = 0; k < nb; k++) v[k] = c[k] ? s[k] / c[k] : NaN;
+    let sm = 0, cm = 0, load = 0; for (let k = 0; k < nb; k++) if (Number.isFinite(v[k])) { sm += v[k]; cm++; }
+    for (let k = 0; k < n1; k++) if (Number.isFinite(pl[k])) load += pl[k];
+    return { v, dt: 1 / out, pl, fs, out, unitDet, mm, isMag, dur,
+      stats: { n, spikes, fs, lp: o.lp > 0 ? lp : 0, gapsSec, pctCorr: n ? spikes / (n * (isMag ? 1 : 3)) * 100 : 0 },
+      summary: { mean: cm ? sm / cm : null, peak: quantile(Array.from(v), 0.99), load, loadMin: dur > 0 ? load / (dur / 60) : null } };
+  }
+
+  return { median, quantile, splitLine, parseTable, guessColumns, parseTimeCol, toNum, isNum, processHR, processAcc, lowpass, normH };
+})();
+if (typeof module !== 'undefined') module.exports = P;
+</script>
+
+<!-- ============ APPLICATION ============ -->
+<script id="appjs">
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const clone = o => o == null ? o : JSON.parse(JSON.stringify(o));
+const tick = () => new Promise(r => setTimeout(r, 20));
+const CH = 8000;
+const CATS = {
+  match: { label: 'Match', desc: 'Compétition officielle ou amicale', c: 'var(--match)', cs: 'var(--match-s)', hex: '#d64527' },
+  entrainement: { label: 'Entraînement', desc: 'Séance technique, tactique, collective', c: 'var(--ent)', cs: 'var(--ent-s)', hex: '#2458c8' },
+  prepa: { label: 'Préparation physique', short: 'Prépa physique', desc: 'Force, vitesse, endurance, réathlé', c: 'var(--prepa)', cs: 'var(--prepa-s)', hex: '#0d8a61' }
+};
+const CAT_KEYS = ['match', 'entrainement', 'prepa'];
+const LANES = { hr: { label: 'Cardio', short: 'FC', hex: '#d64527' }, acc: { label: 'Accéléro', short: 'ACC', hex: '#2458c8' }, video: { label: 'Vidéo', short: 'VID', hex: '#7a4fd0' } };
+const ZONES = [{ n: 'Z1', a: 0, b: 60, c: '#9fb3c8' }, { n: 'Z2', a: 60, b: 70, c: '#4f9d8a' }, { n: 'Z3', a: 70, b: 80, c: '#d9a21b' }, { n: 'Z4', a: 80, b: 90, c: '#e0702c' }, { n: 'Z5', a: 90, b: 999, c: '#c3301b' }];
+const PALETTE = ['#e0702c', '#2458c8', '#0d8a61', '#7a4fd0', '#c3301b', '#d9a21b', '#1f8fb3', '#b0437f', '#5b6b2e', '#6a6f78', '#9d5b2f', '#3d4fb0'];
+
+/* ---------- format ---------- */
+const fmtDur = sec => { if (sec == null || !isFinite(sec)) return '—'; sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return h ? `${h} h ${String(m).padStart(2, '0')}` : m ? `${m} min${s && m < 10 ? ' ' + String(s).padStart(2, '0') + ' s' : ''}` : `${s} s`; };
+const fmtClock = (sec, dec) => { if (!isFinite(sec)) return '—'; const neg = sec < 0; sec = Math.abs(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = Math.floor(sec % 60); let r = (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(s).padStart(2, '0'); if (dec) r += '.' + Math.floor((sec % 1) * 10); return (neg ? '-' : '') + r; };
+const parseClock = s => { s = String(s).trim().replace(',', '.'); if (!s) return NaN; if (/^-?\d+(\.\d+)?$/.test(s)) return +s; const neg = s.startsWith('-'); if (neg) s = s.slice(1); const p = s.split(':').map(Number); if (p.some(isNaN)) return NaN; let v = 0; for (const x of p) v = v * 60 + x; return neg ? -v : v; };
+const fmtDate = d => { if (!d) return '—'; const dt = new Date(d + 'T12:00:00'); return isNaN(dt) ? d : dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }); };
+const fmtN = (v, d = 0) => v == null || !isFinite(v) ? '—' : v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const initials = n => (n || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const hue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const catLabel = k => CATS[k] ? (CATS[k].short || CATS[k].label) : '—';
+const catPill = k => CATS[k] ? `<span class="cat ${k}"><i></i>${esc(catLabel(k))}</span>` : '';
+const ICON = {
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ---------- état ---------- */
+const S = { db: null, user: null, assets: null, meId: null, meName: '', canWrite: true, isOwner: false,
+  players: new Map(), sessions: new Map(), types: new Map(), requests: new Map(),
+  loaded: { players: false, sessions: false, types: false, requests: false }, names: {}, ui: { q: '', cat: 'all', scat: 'all', splayer: 'all' }, localVideos: {}, videoCache: {}, offline: false };
+const H = { undo: [], redo: [], busy: false };
+
+/* ---------- UI helpers ---------- */
+function toast(msg, opts = {}) {
+  const el = document.createElement('div'); el.className = 'tst' + (opts.err ? ' err' : '');
+  el.innerHTML = `<span>${esc(msg)}</span>` + (opts.undo ? '<button>Annuler</button>' : '');
+  if (opts.undo) el.querySelector('button').onclick = () => { el.remove(); doUndo(); };
+  const tc = $('#toast'); while (tc.children.length >= 2) tc.firstChild.remove(); tc.appendChild(el); setTimeout(() => el.remove(), opts.err ? 7000 : 4500);
+}
+function modal(html, o = {}) {
+  const m = $('#modal'); m.innerHTML = `<div class="mbg"></div><div class="mbox ${o.wide ? 'wide' : ''}">${html}</div>`; m.classList.add('on');
+  m.querySelector('.mbg').onclick = () => { if (!o.sticky) closeModal(); };
+  return m.querySelector('.mbox');
+}
+function closeModal() { const m = $('#modal'); m.classList.remove('on'); m.innerHTML = ''; }
+function confirmBox(title, text, ok = 'Confirmer', danger = false) {
+  return new Promise(res => {
+    const b = modal(`<div class="mh"><h2>${esc(title)}</h2></div><div class="mb"><p style="margin:0;color:var(--ink2)">${text}</p></div><div class="mf"><button class="btn" data-x>Annuler</button><button class="btn ${danger ? 'danger' : 'pri'}" data-ok>${esc(ok)}</button></div>`);
+    b.querySelector('[data-x]').onclick = () => { closeModal(); res(false); };
+    b.querySelector('[data-ok]').onclick = () => { closeModal(); res(true); };
+  });
+}
+function errMsg(e) {
+  const c = e && e.code;
+  if (c === 'quota_exceeded') return 'Espace de stockage plein : videz la corbeille ou supprimez d’anciennes données.';
+  if (c === 'invalid_argument') return 'Action refusée : votre accès ne permet peut-être pas de modifier les données (il faut le rôle « Coach »).';
+  if (c === 'resource_exhausted') return 'Trop d’opérations d’un coup, réessayez dans un instant.';
+  if (c === 'revoked') return 'Votre accès a changé, rechargez la page.';
+  return (e && e.message) || 'Erreur inattendue';
+}
+
+/* ---------- écriture + annuler/rétablir ---------- */
+function cached(path) {
+  const [col, id] = path.split('/');
+  const m = { players: S.players, sessions: S.sessions, exerciseTypes: S.types, requests: S.requests }[col];
+  if (m && m.has(id)) return clone(m.get(id));
+  if (col === 'annotations' && SP && SP.ann.has(id)) return clone(SP.ann.get(id));
+  return undefined;
+}
+async function applyOps(list, onProg) {
+  let i = 0;
+  for (const [p, d] of list) {
+    const ref = S.db.doc(p);
+    let tries = 0;
+    for (;;) {
+      try { if (d == null) await ref.delete(); else await ref.set(d); break; }
+      catch (e) { if (e && e.code === 'unavailable' && tries++ < 2) { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); continue; } throw e; }
+    }
+    i++; if (onProg) onProg(i / list.length);
+  }
+}
+async function changeMany(label, ops, o = {}) {
+  if (!S.db) { toast('Base de données indisponible', { err: true }); throw new Error('no db'); }
+  const prevs = [];
+  for (const op of ops) {
+    let p = cached(op.path);
+    if (p === undefined) { const s = await S.db.doc(op.path).get(); p = s.exists ? clone(s.data()) : null; }
+    prevs.push(p);
+  }
+  const fwd = ops.map(op => [op.path, op.data]);
+  const back = ops.map((op, i) => [op.path, prevs[i]]).reverse();
+  try { await applyOps(fwd, o.onProg); }
+  catch (e) { toast(errMsg(e), { err: true }); throw e; }
+  if (o.undoable !== false) { H.undo.push({ label, fwd, back }); if (H.undo.length > 60) H.undo.shift(); H.redo = []; }
+  updUndo();
+  if (!o.silent) toast(label, { undo: o.undoable !== false });
+}
+const patch = (label, path, changes, o) => { const cur = cached(path) || {}; return changeMany(label, [{ path, data: Object.assign(cur, changes) }], o); };
+async function doUndo() {
+  if (H.busy) return; const a = H.undo.pop(); if (!a) return; H.busy = true;
+  try { await applyOps(a.back); H.redo.push(a); toast('Annulé : ' + a.label); } catch (e) { H.undo.push(a); toast(errMsg(e), { err: true }); }
+  H.busy = false; updUndo();
+}
+async function doRedo() {
+  if (H.busy) return; const a = H.redo.pop(); if (!a) return; H.busy = true;
+  try { await applyOps(a.fwd); H.undo.push(a); toast('Rétabli : ' + a.label); } catch (e) { H.redo.push(a); toast(errMsg(e), { err: true }); }
+  H.busy = false; updUndo();
+}
+function updUndo() {
+  $('#bUndo').disabled = !H.undo.length; $('#bRedo').disabled = !H.redo.length;
+  $('#undoLbl').textContent = H.undo.length ? 'Dernière action : ' + H.undo[H.undo.length - 1].label : '';
+}
+$('#bUndo').onclick = doUndo; $('#bRedo').onclick = doRedo;
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase(); const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !typing) { e.preventDefault(); doRedo(); }
+  else if (e.key === 'Escape' && $('#modal').classList.contains('on')) closeModal();
+  else if (SP && !typing && !$('#modal').classList.contains('on')) sessionKey(e);
+});
+
+/* ---------- données ---------- */
+const alive = m => [...m.values()].filter(x => !x.deleted);
+const playerSessions = pid => alive(S.sessions).filter(s => s.playerId === pid && !(S.players.get(pid) || {}).deleted);
+const sortByDate = arr => arr.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+const sessDur = s => s.duration || (s.hr && s.hr.n) || (s.acc && s.acc.dur) || 0;
+const playerName = id => (S.players.get(id) || {}).name || '—';
+const typeOf = id => S.types.get(id) || { name: 'Sans type', color: '#9aa0a8' };
+async function resolveNames(ids) {
+  if (!S.user || !S.user.profiles) return;
+  const need = [...new Set(ids.filter(i => i && !(i in S.names)))]; if (!need.length) return;
+  need.forEach(i => S.names[i] = '');
+  try { const ps = await S.user.profiles(need); for (const i of need) S.names[i] = (ps && ps[i] && ps[i].name) || 'Quelqu’un'; schedRender(); } catch (e) { }
+}
+const who = id => !id ? '—' : (id === S.meId ? 'vous' : (S.names[id] || '…'));
+
+/* ---------- init ---------- */
+async function init() {
+  renderNav(); window.addEventListener('hashchange', route);
+  const C = window.claude;
+  if (!C || !C.use) { S.offline = true; route(); return; }
+  const timer = setTimeout(() => { if (!S.db) { S.offline = true; route(); } }, 10000);
+  let db = null, user = null;
+  try { [db, user] = await Promise.all([C.use('db'), C.use('user')]); } catch (e) { }
+  try { S.assets = await C.use('assets'); } catch (e) { S.assets = null; }
+  clearTimeout(timer);
+  S.db = db; S.user = user;
+  if (!db) { S.offline = true; route(); return; }
+  S.offline = false;
+  if (user) {
+    try { S.meId = await user.id(); } catch (e) { }
+    try { const me = await user.me(); S.meName = (me && me.name) || ''; } catch (e) { }
+    try { S.isOwner = !!user.isOwner(); } catch (e) { }
+    try { const c = await user.can('data.write'); if (c === false) S.canWrite = false; } catch (e) { }
+  }
+  document.body.classList.toggle('ro', !S.canWrite);
+  $('#who').innerHTML = `Connecté : <b>${esc(S.meName || 'vous')}</b>${S.isOwner ? ' · propriétaire' : ''}${S.isOwner ? '' : S.canWrite ? ' · coach' : ' · lecteur'}`.replace('propriétaire', 'administrateur') + ` · <button class="link" id="logout">Se déconnecter</button>`;
+  $('#logout').onclick = () => A.sb.auth.signOut();
+  if (S.isOwner) subProfiles();
+  const sub = (col, map, key) => {
+    const t = setTimeout(() => { if (!S.loaded[key]) { S.slow = true; schedRender(); } }, 10000);
+    db.collection(col).onSnapshot(snap => {
+      map.clear(); snap.docs.forEach(d => map.set(d.id, Object.assign({ id: d.id }, d.data())));
+      if (!snap.metadata.fromCache) { S.loaded[key] = true; clearTimeout(t); S.slow = false; }
+      else if (!S.loaded[key] && map.size) S.loaded[key] = true;
+      schedRender();
+    }, e => { clearTimeout(t); S.loaded[key] = true; toast('Lecture impossible : ' + errMsg(e), { err: true }); schedRender(); });
+  };
+  sub('players', S.players, 'players'); sub('sessions', S.sessions, 'sessions'); sub('exerciseTypes', S.types, 'types'); sub('requests', S.requests, 'requests');
+  route();
+}
+let rq = 0;
+function schedRender() { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; render(); }); }
+
+/* ---------- navigation ---------- */
+function parseRoute() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  let m;
+  if ((m = h.match(/^joueur-([a-z0-9]+)$/))) return { v: 'player', id: m[1] };
+  if ((m = h.match(/^seance-([a-z0-9]+)$/))) return { v: 'session', id: m[1] };
+  if (['seances', 'types', 'corbeille', 'demandes', 'acces'].includes(h)) return { v: h };
+  return { v: 'players' };
+}
+function route() { const r = parseRoute(); if (SP && !(r.v === 'session' && r.id === SP.id)) unmountSession(); S.route = r; window.scrollTo(0, 0); render(true); }
+function renderNav() {
+  const r = S.route || {}; const v = r.v === 'player' ? 'players' : r.v === 'session' ? '' : r.v;
+  const np = alive(S.players).length, ns = alive(S.sessions).filter(s => !(S.players.get(s.playerId) || {}).deleted).length;
+  const nt = [...S.players.values(), ...S.sessions.values(), ...S.types.values()].filter(x => x.deleted).length;
+  const nr = [...S.requests.values()].filter(x => !x.done && !x.deleted).length;
+  $('#nav').innerHTML = `
+    <div class="sec">Équipe</div>
+    <a href="#joueurs" class="${v === 'players' ? 'on' : ''}">${ICON.users}Joueurs<span class="cnt">${np || ''}</span></a>
+    <a href="#seances" class="${v === 'seances' ? 'on' : ''}">${ICON.list}Séances<span class="cnt">${ns || ''}</span></a>
+    <div class="sec">Réglages</div>
+    <a href="#types" class="${v === 'types' ? 'on' : ''}">${ICON.tag}Types d’exercices</a>
+    <a href="#corbeille" class="${v === 'corbeille' ? 'on' : ''}">${ICON.trash}Corbeille<span class="cnt">${nt || ''}</span></a>
+    <a href="#demandes" class="${v === 'demandes' ? 'on' : ''}">${ICON.bulb}Évolutions<span class="cnt">${nr || ''}</span></a>${S.isOwner ? `<a href="#acces" class="${v === 'acces' ? 'on' : ''}">${ICON.users}Accès des coachs<span class="cnt">${[...S.profiles.values()].filter(p => p.role === 'pending').length || ''}</span></a>` : ''}`;
+}
+function render(force) {
+  renderNav();
+  const r = S.route || parseRoute(); const main = $('#main');
+  if (S.offline) { main.innerHTML = `<div class="empty" style="margin-top:40px"><b>Connexion requise</b>Impossible de joindre la base de données. Vérifiez votre connexion internet, puis rechargez la page.</div>`; return; }
+  if (!S.loaded.players || !S.loaded.sessions) { main.innerHTML = `<div class="loading">${S.slow ? 'La base de données ne répond pas encore… vérifiez votre connexion.' : 'Chargement des données…'}</div>`; return; }
+  const ro = S.canWrite ? '' : `<div class="banner">Vous êtes en lecture seule. Pour ajouter ou modifier des données, demandez à un administrateur le rôle « Coach ».</div>`;
+  if (r.v === 'session') { if (SP && SP.id === r.id && !force) { updateSession(); return; } mountSession(r.id, ro); return; }
+  const keepQ = document.activeElement && document.activeElement.id === 'q';
+  const html = r.v === 'player' ? viewPlayer(r.id) : r.v === 'seances' ? viewSessions() : r.v === 'types' ? viewTypes() : r.v === 'corbeille' ? viewTrash() : r.v === 'demandes' ? viewRequests() : r.v === 'acces' ? viewAccess() : viewPlayers();
+  main.innerHTML = ro + html;
+  bindView(r); if (r.v === 'acces') bindAccess(main);
+  if (keepQ) { const q = $('#q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
+}
+
+/* ---------- vue : joueurs ---------- */
+function catCounts(list) { const c = { match: 0, entrainement: 0, prepa: 0 }; list.forEach(s => { if (c[s.category] != null) c[s.category]++; }); return c; }
+function viewPlayers() {
+  const ps = alive(S.players).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  const all = alive(S.sessions).filter(s => S.players.has(s.playerId) && !S.players.get(s.playerId).deleted);
+  const cc = catCounts(all);
+  const dur = k => all.filter(s => s.category === k).reduce((a, s) => a + sessDur(s), 0);
+  const q = S.ui.q.toLowerCase(); const cf = S.ui.cat;
+  const shown = ps.filter(p => (!q || p.name.toLowerCase().includes(q) || (p.poste || '').toLowerCase().includes(q)) && (cf === 'all' || playerSessions(p.id).some(s => s.category === cf)));
+  const cards = shown.map(p => {
+    const ss = sortByDate(playerSessions(p.id)); const c = catCounts(ss); const tot = ss.length;
+    return `<a class="pcard" href="#joueur-${p.id}">
+      <div class="pc-top"><div class="av" style="--h:${hue(p.name)}">${esc(initials(p.name))}</div><div style="min-width:0"><div class="pn">${esc(p.name)}</div><div class="pm">${esc(p.poste || 'Poste non renseigné')}${p.fcMax ? ` · FC max ${p.fcMax}` : ''}</div></div></div>
+      <div class="split">${tot ? CAT_KEYS.map(k => c[k] ? `<span style="flex:${c[k]};background:${CATS[k].c}"></span>` : '').join('') : ''}</div>
+      <div class="pcounts">${CAT_KEYS.map(k => `<span><i style="background:${CATS[k].c}"></i>${esc(catLabel(k))} <b>${c[k]}</b></span>`).join('')}</div>
+      <div class="plast">${tot ? `Dernière séance : ${fmtDate(ss[0].date)} · ${esc(catLabel(ss[0].category))}` : 'Aucune séance pour l’instant'}</div></a>`;
+  }).join('');
+  return `<div class="ph"><div><div class="eyebrow">Effectif</div><h1 class="t">Joueurs</h1><div class="sub">Chaque profil est conservé de façon permanente, avec ses séances classées par type.</div></div>
+    <div class="acts"><div class="search">${ICON.search}<input id="q" class="f" placeholder="Rechercher un prénom…" value="${esc(S.ui.q)}"></div><button class="btn pri w-only" id="addP">${ICON.plus}Nouveau joueur</button></div></div>
+    <div class="teamstrip">
+      <div class="tcard"><div class="k">Joueurs</div><div class="v">${ps.length}</div><div class="s">${all.length} séance${all.length > 1 ? 's' : ''} au total</div></div>
+      ${CAT_KEYS.map(k => `<div class="tcard" style="--c:${CATS[k].c}"><div class="k" style="color:${CATS[k].c}">${esc(CATS[k].label)}</div><div class="v">${cc[k]}</div><div class="s">${fmtDur(dur(k))} cumulées</div></div>`).join('')}
+    </div>
+    <div class="ph" style="margin-bottom:14px"><div class="chips" id="catf">${[['all', 'Tous les joueurs']].concat(CAT_KEYS.map(k => [k, 'Avec ' + catLabel(k).toLowerCase()])).map(([k, l]) => `<button class="chip ${cf === k ? 'on' : ''}" data-c="${k}">${k !== 'all' ? `<i style="background:${CATS[k].c}"></i>` : ''}${esc(l)}</button>`).join('')}</div></div>
+    ${ps.length ? (shown.length ? `<div class="pgrid">${cards}</div>` : `<div class="empty"><b>Aucun résultat</b>Aucun joueur ne correspond à ce filtre.</div>`)
+      : `<div class="empty"><b>Créez votre premier profil</b>Ajoutez un joueur par son prénom, puis ses séances de match, d’entraînement et de préparation physique.<div style="margin-top:16px"><button class="btn pri w-only" id="addP2">${ICON.plus}Nouveau joueur</button></div></div>`}`;
+}
+function playerModal(p) {
+  const e = !!p; p = p || {};
+  const b = modal(`<div class="mh"><div class="eyebrow">${e ? 'Modifier le profil' : 'Nouveau profil'}</div><h2>${e ? esc(p.name) : 'Ajouter un joueur'}</h2></div>
+    <form class="mb" id="pf">
+      <div class="fld"><label class="l">Prénom *</label><input class="f" name="name" required value="${esc(p.name || '')}" placeholder="ex. Lucas"></div>
+      <div class="row2"><div class="fld"><label class="l">Poste</label><input class="f" name="poste" value="${esc(p.poste || '')}" placeholder="ex. Milieu"></div>
+      <div class="fld"><label class="l">Année de naissance</label><input class="f" name="born" inputmode="numeric" value="${esc(p.born || '')}" placeholder="ex. 2006"></div></div>
+      <div class="row2"><div class="fld"><label class="l">FC max (bpm)</label><input class="f" name="fcMax" inputmode="numeric" value="${esc(p.fcMax || '')}" placeholder="ex. 198"></div>
+      <div class="fld"><label class="l">FC repos (bpm)</label><input class="f" name="fcRest" inputmode="numeric" value="${esc(p.fcRest || '')}" placeholder="ex. 52"></div></div>
+      <div class="fld"><label class="l">Notes</label><textarea class="f" name="notes" rows="2">${esc(p.notes || '')}</textarea></div>
+      <div class="note">La FC max sert à calculer les zones d’intensité (Z1 à Z5) et le % FC max de chaque exercice.</div>
+    </form><div class="mf"><button class="btn" data-x>Annuler</button><button class="btn pri" data-ok>${e ? 'Enregistrer' : 'Créer le profil'}</button></div>`);
+  b.querySelector('[data-x]').onclick = closeModal;
+  const submit = async ev => {
+    ev && ev.preventDefault();
+    const f = new FormData(b.querySelector('#pf')); const name = String(f.get('name') || '').trim();
+    if (!name) { b.querySelector('[name=name]').focus(); return; }
+    const num = k => { const v = parseInt(f.get(k), 10); return isFinite(v) ? v : null; };
+    const data = Object.assign({}, e ? clone(p) : { createdAt: Date.now(), createdBy: S.meId, deleted: false }, { name, poste: String(f.get('poste') || '').trim(), born: num('born'), fcMax: num('fcMax'), fcRest: num('fcRest'), notes: String(f.get('notes') || ''), updatedAt: Date.now() });
+    delete data.id; const id = e ? p.id : uid();
+    closeModal();
+    try { await changeMany(e ? `Profil de ${name} modifié` : `Profil ${name} créé`, [{ path: 'players/' + id, data }]); if (!e) location.hash = 'joueur-' + id; } catch (x) { }
+  };
+  b.querySelector('#pf').onsubmit = submit; b.querySelector('[data-ok]').onclick = submit;
+  setTimeout(() => b.querySelector('[name=name]').focus(), 30);
+}
+
+/* ---------- vue : joueur ---------- */
+function viewPlayer(id) {
+  const p = S.players.get(id);
+  if (!p) return `<a class="back" href="#joueurs">← Joueurs</a><div class="empty"><b>Profil introuvable</b>Ce joueur n’existe pas ou a été supprimé définitivement.</div>`;
+  if (p.deleted) return `<a class="back" href="#joueurs">← Joueurs</a><div class="empty"><b>Profil dans la corbeille</b>${esc(p.name)} a été supprimé. <div style="margin-top:14px"><button class="btn pri w-only" data-restore="players/${p.id}">Restaurer le profil</button></div></div>`;
+  const ss = sortByDate(playerSessions(id));
+  const tot = ss.reduce((a, s) => a + sessDur(s), 0);
+  const hrs = ss.filter(s => s.hr && s.hr.summary && s.hr.summary.avg);
+  const avgHr = hrs.length ? hrs.reduce((a, s) => a + s.hr.summary.avg * (s.hr.n || 1), 0) / hrs.reduce((a, s) => a + (s.hr.n || 1), 0) : null;
+  const load = ss.reduce((a, s) => a + ((s.acc && s.acc.summary && s.acc.summary.load) || 0), 0);
+  const col = k => {
+    const l = ss.filter(s => s.category === k); const d = l.reduce((a, s) => a + sessDur(s), 0);
+    return `<div class="col" style="--c:${CATS[k].c}"><div class="colh"><div class="ttl"><h2>${esc(CATS[k].label)}</h2><button class="btn sm w-only" data-newsess="${k}">${ICON.plus}Séance</button></div>
+      <div class="meta"><span><b>${l.length}</b>séance${l.length > 1 ? 's' : ''}</span><span><b>${fmtDur(d)}</b>temps cumulé</span></div></div>
+      <div class="colb">${l.length ? l.map(sessRow).join('') : `<div class="colempty">Aucune séance de ${esc(catLabel(k).toLowerCase())}</div>`}</div></div>`;
+  };
+  resolveNames([p.createdBy]);
+  return `<a class="back" href="#joueurs">← Joueurs</a>
+    <div class="ph"><div class="phero"><div class="av lg" style="--h:${hue(p.name)}">${esc(initials(p.name))}</div><div><div class="eyebrow">${esc(p.poste || 'Joueur')}${p.born ? ' · né en ' + p.born : ''}</div><h1 class="t">${esc(p.name)}</h1>
+      <div class="sub">${p.fcMax ? `FC max <b class="num">${p.fcMax}</b> bpm` : 'FC max non renseignée'}${p.fcRest ? ` · FC repos <b class="num">${p.fcRest}</b>` : ''} · profil créé le ${new Date(p.createdAt || Date.now()).toLocaleDateString('fr-FR')}${p.createdBy ? ' par ' + esc(who(p.createdBy)) : ''}</div></div></div>
+      <div class="acts w-only"><button class="btn" id="editP">Modifier le profil</button><button class="btn danger" id="delP">${ICON.trash}Supprimer</button><button class="btn pri" data-newsess="">${ICON.plus}Nouvelle séance</button></div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Séances</div><div class="v">${ss.length}</div></div>
+      <div class="kpi"><div class="k">Temps cumulé</div><div class="v">${fmtDur(tot)}</div></div>
+      <div class="kpi"><div class="k">FC moyenne</div><div class="v">${fmtN(avgHr)}<small>bpm</small></div></div>
+      <div class="kpi"><div class="k">Charge cumulée</div><div class="v">${fmtN(load)}<small>u.a.</small></div></div>
+      ${CAT_KEYS.map(k => `<div class="kpi"><div class="k" style="color:${CATS[k].c}">${esc(catLabel(k))}</div><div class="v">${ss.filter(s => s.category === k).length}</div></div>`).join('')}
+    </div>
+    ${p.notes ? `<div class="note" style="margin-top:14px">${esc(p.notes)}</div>` : ''}
+    <div class="cols">${CAT_KEYS.map(col).join('')}</div>`;
+}
+function sessRow(s) {
+  const hr = s.hr && s.hr.summary, acc = s.acc && s.acc.summary;
+  return `<a class="srow" href="#seance-${s.id}"><div class="a"><span class="ti">${esc(s.title || 'Séance')}</span><span class="d">${fmtDate(s.date)}</span></div>
+    <div class="b"><span>${fmtDur(sessDur(s))}</span>${hr && hr.avg ? `<span class="num">♥ ${fmtN(hr.avg)} / ${fmtN(hr.max)}</span>` : ''}${acc && acc.load ? `<span class="num">⚡ ${fmtN(acc.load)}</span>` : ''}
+    <span class="tags"><span class="tag hr ${s.hr ? 'on' : ''}">FC</span><span class="tag acc ${s.acc ? 'on' : ''}">ACC</span><span class="tag vid ${s.video ? 'on' : ''}">VID</span></span></div></a>`;
+}
+function sessionModal(o) {
+  const s = o.session; const e = !!s; let cat = (s && s.category) || o.cat || 'entrainement';
+  const pid = (s && s.playerId) || o.playerId;
+  const players = alive(S.players).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  const b = modal(`<div class="mh"><div class="eyebrow">${e ? 'Modifier la séance' : 'Nouvelle séance'}</div><h2>${e ? esc(s.title) : 'Classer et créer la séance'}</h2></div>
+    <form class="mb" id="sf">
+      <div class="fld"><label class="l">Classement</label><div class="catpick">${CAT_KEYS.map(k => `<button type="button" data-cat="${k}" style="--c:${CATS[k].c};--cs:${CATS[k].cs}" class="${cat === k ? 'on' : ''}"><b>${esc(catLabel(k))}</b><span>${esc(CATS[k].desc)}</span></button>`).join('')}</div></div>
+      <div class="fld"><label class="l">Joueur</label><select class="f" name="pid">${players.map(p => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+      <div class="row2"><div class="fld"><label class="l">Intitulé</label><input class="f" name="title" value="${esc((s && s.title) || '')}" placeholder="ex. J12 vs Lyon / Vitesse + jeux réduits"></div>
+      <div class="fld"><label class="l">Date</label><input class="f" type="date" name="date" value="${esc((s && s.date) || today())}"></div></div>
+      <div class="fld"><label class="l">Notes</label><textarea class="f" name="notes" rows="2">${esc((s && s.notes) || '')}</textarea></div>
+    </form><div class="mf"><button class="btn" data-x>Annuler</button><button class="btn pri" data-ok>${e ? 'Enregistrer' : 'Créer la séance'}</button></div>`);
+  $$('[data-cat]', b).forEach(x => x.onclick = () => { cat = x.dataset.cat; $$('[data-cat]', b).forEach(y => y.classList.toggle('on', y === x)); });
+  b.querySelector('[data-x]').onclick = closeModal;
+  const submit = async ev => {
+    ev && ev.preventDefault(); const f = new FormData(b.querySelector('#sf'));
+    const pid2 = f.get('pid'); if (!pid2) { toast('Créez d’abord un joueur', { err: true }); return; }
+    const title = String(f.get('title') || '').trim() || (catLabel(cat) + ' du ' + fmtDate(f.get('date')));
+    const id = e ? s.id : uid();
+    const base = e ? clone(s) : { createdAt: Date.now(), createdBy: S.meId, deleted: false, hr: null, acc: null, video: null, duration: 0 };
+    delete base.id;
+    const data = Object.assign(base, { playerId: pid2, title, date: f.get('date') || today(), category: cat, notes: String(f.get('notes') || ''), updatedAt: Date.now() });
+    closeModal();
+    try { await changeMany(e ? 'Séance modifiée' : `Séance « ${title} » créée`, [{ path: 'sessions/' + id, data }]); if (!e) location.hash = 'seance-' + id; } catch (x) { }
+  };
+  b.querySelector('#sf').onsubmit = submit; b.querySelector('[data-ok]').onclick = submit;
+}
+
+/* ---------- vue : toutes les séances ---------- */
+function viewSessions() {
+  const players = alive(S.players).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  let ss = sortByDate(alive(S.sessions).filter(s => S.players.has(s.playerId) && !S.players.get(s.playerId).deleted));
+  const cc = catCounts(ss);
+  if (S.ui.scat !== 'all') ss = ss.filter(s => s.category === S.ui.scat);
+  if (S.ui.splayer !== 'all') ss = ss.filter(s => s.playerId === S.ui.splayer);
+  return `<div class="ph"><div><div class="eyebrow">Historique</div><h1 class="t">Séances</h1><div class="sub">Toutes les séances de l’effectif, classées par type.</div></div>
+    <div class="acts"><select class="f" id="spl" style="width:200px"><option value="all">Tous les joueurs</option>${players.map(p => `<option value="${p.id}" ${S.ui.splayer === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+    <button class="btn pri w-only" data-newsess="">${ICON.plus}Nouvelle séance</button></div></div>
+    <div class="chips" id="scf" style="margin-bottom:16px">${[['all', 'Toutes', cc.match + cc.entrainement + cc.prepa]].concat(CAT_KEYS.map(k => [k, CATS[k].label, cc[k]])).map(([k, l, n]) => `<button class="chip ${S.ui.scat === k ? 'on' : ''}" data-c="${k}">${k !== 'all' ? `<i style="background:${CATS[k].c}"></i>` : ''}${esc(l)} <span class="num" style="opacity:.6">${n}</span></button>`).join('')}</div>
+    ${ss.length ? `<div class="card tbwrap"><table class="tb"><thead><tr><th>Date</th><th>Joueur</th><th>Classement</th><th>Séance</th><th class="r">Durée</th><th class="r">FC moy</th><th class="r">FC max</th><th class="r">Charge</th><th>Données</th></tr></thead><tbody>
+      ${ss.map(s => `<tr class="cl" data-go="seance-${s.id}"><td class="num">${fmtDate(s.date)}</td><td><b>${esc(playerName(s.playerId))}</b></td><td>${catPill(s.category)}</td><td>${esc(s.title)}</td><td class="r num">${fmtDur(sessDur(s))}</td><td class="r num">${fmtN(s.hr && s.hr.summary && s.hr.summary.avg)}</td><td class="r num">${fmtN(s.hr && s.hr.summary && s.hr.summary.max)}</td><td class="r num">${fmtN(s.acc && s.acc.summary && s.acc.summary.load)}</td><td><span class="tags" style="margin:0"><span class="tag hr ${s.hr ? 'on' : ''}">FC</span><span class="tag acc ${s.acc ? 'on' : ''}">ACC</span><span class="tag vid ${s.video ? 'on' : ''}">VID</span></span></td></tr>`).join('')}
+    </tbody></table></div>` : `<div class="empty"><b>Aucune séance</b>${players.length ? 'Créez une séance depuis le profil d’un joueur.' : 'Commencez par créer un joueur.'}</div>`}`;
+}
+
+/* ---------- vue : types d'exercices ---------- */
+function viewTypes() {
+  const ts = alive(S.types).sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.name.localeCompare(b.name, 'fr'));
+  return `<div class="ph"><div><div class="eyebrow">Réglages</div><h1 class="t">Types d’exercices</h1><div class="sub">La liste utilisée pour annoter le cardio, l’accéléromètre et la vidéo. Les modifications s’appliquent à toutes les séances.</div></div>
+    <div class="acts w-only"><button class="btn pri" id="addT">${ICON.plus}Ajouter un type</button></div></div>
+    <div class="card">${ts.length ? ts.map(t => `<div class="typ" data-t="${t.id}"><input type="color" value="${esc(t.color || '#888888')}" data-col ${S.canWrite ? '' : 'disabled'}><input class="f" value="${esc(t.name)}" data-name ${S.canWrite ? '' : 'disabled'}><span class="muted" style="font-size:12px;margin-left:auto">${esc(t.group || '')}</span><button class="btn sm danger w-only" data-delt>${ICON.trash}</button></div>`).join('')
+      : `<div class="empty" style="margin:16px;border:0"><b>Aucun type</b>Ajoutez vos exercices (échauffement, sprint, jeu réduit…).</div>`}</div>`;
+}
+async function addType(name, color) {
+  const id = uid(); const n = alive(S.types).length;
+  await changeMany(`Type « ${name} » ajouté`, [{ path: 'exerciseTypes/' + id, data: { name, color: color || PALETTE[n % PALETTE.length], order: n, deleted: false, createdAt: Date.now(), createdBy: S.meId } }]);
+  return id;
+}
+function typeModal(cb) {
+  const b = modal(`<div class="mh"><h2>Nouveau type d’exercice</h2></div><form class="mb" id="tf"><div class="row2" style="grid-template-columns:1fr 70px"><div class="fld"><label class="l">Nom</label><input class="f" name="n" required placeholder="ex. Jeu réduit 4c4"></div><div class="fld"><label class="l">Couleur</label><input class="f" type="color" name="c" value="${PALETTE[alive(S.types).length % PALETTE.length]}" style="height:38px;padding:3px"></div></div></form><div class="mf"><button class="btn" data-x>Annuler</button><button class="btn pri" data-ok>Ajouter</button></div>`);
+  b.querySelector('[data-x]').onclick = closeModal;
+  const go = async e => { e && e.preventDefault(); const f = new FormData(b.querySelector('#tf')); const n = String(f.get('n') || '').trim(); if (!n) return; closeModal(); try { const id = await addType(n, f.get('c')); cb && cb(id); } catch (x) { } };
+  b.querySelector('#tf').onsubmit = go; b.querySelector('[data-ok]').onclick = go; setTimeout(() => b.querySelector('[name=n]').focus(), 30);
+}
+
+/* ---------- vue : corbeille ---------- */
+let trashAnn = null;
+function viewTrash() {
+  if (trashAnn === null && S.db) { trashAnn = []; S.db.collection('annotations').where('deleted', '==', true).limit(300).get().then(s => { trashAnn = s.docs.map(d => Object.assign({ id: d.id }, d.data())); schedRender(); }).catch(() => { }); }
+  const dp = [...S.players.values()].filter(x => x.deleted), ds = [...S.sessions.values()].filter(x => x.deleted), dt = [...S.types.values()].filter(x => x.deleted);
+  const da = (trashAnn || []).filter(a => a.deleted);
+  const item = (path, title, sub) => `<div class="trash-it"><div class="w"><b>${esc(title)}</b><span>${sub}</span></div><button class="btn sm w-only" data-restore="${path}">Restaurer</button><button class="btn sm danger w-only" data-purge="${path}">Supprimer définitivement</button></div>`;
+  const when = x => x.deletedAt ? 'supprimé le ' + new Date(x.deletedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) + (x.deletedBy ? ' par ' + esc(who(x.deletedBy)) : '') : '';
+  resolveNames([...dp, ...ds, ...dt, ...da].map(x => x.deletedBy));
+  const sec = (t, arr) => `<h3 class="t" style="margin:26px 0 10px">${t} <span class="muted num">${arr.length}</span></h3><div class="card">${arr.length ? arr.join('') : '<div class="trash-it muted">Vide</div>'}</div>`;
+  return `<div class="ph"><div><div class="eyebrow">Réglages</div><h1 class="t">Corbeille</h1><div class="sub">Rien n’est perdu : tout élément supprimé arrive ici et peut être restauré. Seule la suppression définitive est irréversible.</div></div></div>
+    ${sec('Joueurs', dp.map(p => item('players/' + p.id, p.name, when(p))))}
+    ${sec('Séances', ds.map(s => item('sessions/' + s.id, s.title, `${esc(playerName(s.playerId))} · ${catLabel(s.category)} · ${fmtDate(s.date)} · ${when(s)}`)))}
+    ${sec('Annotations', da.map(a => item('annotations/' + a.id, typeOf(a.typeId).name + ' · ' + fmtClock(a.a) + ' → ' + fmtClock(a.b), `${esc((S.sessions.get(a.sessionId) || {}).title || 'Séance')} · ${when(a)}`)))}
+    ${sec('Types d’exercices', dt.map(t => item('exerciseTypes/' + t.id, t.name, when(t))))}`;
+}
+async function softDelete(path, label) { const cur = cached(path); if (!cur) return; delete cur.id; await changeMany(label, [{ path, data: Object.assign(cur, { deleted: true, deletedAt: Date.now(), deletedBy: S.meId }) }]); }
+async function restore(path) {
+  let cur = cached(path); if (!cur) { const s = await S.db.doc(path).get(); cur = s.exists ? s.data() : null; } if (!cur) return;
+  delete cur.id; cur.deleted = false; delete cur.deletedAt; delete cur.deletedBy;
+  await changeMany('Élément restauré', [{ path, data: cur }]); trashAnn = null; schedRender();
+}
+async function purge(path) {
+  const [col, id] = path.split('/');
+  let extra = '';
+  if (col === 'players') { const n = [...S.sessions.values()].filter(s => s.playerId === id).length; extra = n ? ` Ses ${n} séance(s), leurs données et vidéos seront aussi effacées.` : ''; }
+  if (col === 'sessions') extra = ' Les données cardio, accéléromètre, la vidéo et les annotations de la séance seront effacées.';
+  if (!(await confirmBox('Supprimer définitivement ?', 'Cette action est irréversible et ne peut pas être annulée.' + esc(extra), 'Supprimer définitivement', true))) return;
+  try {
+    const ops = []; const assetsToDel = [];
+    const sessOps = async s => {
+      for (const k of ['hr', 'acc']) if (s[k]) { for (let i = 0; i < (s[k].chunks || 0); i++) ops.push(`series/${s.id}-${k}-${i}`); if (k === 'acc') for (let i = 0; i < (s.acc.plChunks || 0); i++) ops.push(`series/${s.id}-pl-${i}`); }
+      if (s.video && s.video.parts) assetsToDel.push(...s.video.parts);
+      const an = await S.db.collection('annotations').where('sessionId', '==', s.id).get(); an.docs.forEach(d => ops.push('annotations/' + d.id));
+      ops.push('sessions/' + s.id);
+    };
+    if (col === 'players') { for (const s of [...S.sessions.values()].filter(s => s.playerId === id)) await sessOps(s); ops.push(path); }
+    else if (col === 'sessions') { const s = S.sessions.get(id); if (s) await sessOps(Object.assign({ id }, s)); }
+    else ops.push(path);
+    await applyOps(ops.map(p => [p, null]));
+    if (S.assets) for (const a of assetsToDel) { try { await S.assets.delete(a); } catch (e) { } }
+    toast('Supprimé définitivement'); trashAnn = null; schedRender();
+  } catch (e) { toast(errMsg(e), { err: true }); }
+}
+
+/* ---------- vue : évolutions ---------- */
+function viewRequests() {
+  const rs = [...S.requests.values()].filter(r => !r.deleted).sort((a, b) => (a.done - b.done) || (b.createdAt - a.createdAt));
+  resolveNames(rs.map(r => r.createdBy));
+  return `<div class="ph"><div><div class="eyebrow">Faire évoluer l’application</div><h1 class="t">Évolutions</h1><div class="sub">Notez ici les fonctionnalités souhaitées par vous ou les coachs.</div></div></div>
+    <div class="note" style="margin-bottom:16px;font-size:13px"><b>Pour ajouter une fonctionnalité :</b> ouvrez une conversation avec Claude, donnez le lien du dépôt GitHub de l’application et décrivez ce que vous voulez (ou écrivez « applique les demandes en attente de la page Évolutions »). Le site se met à jour au même lien, sans perte de données.</div>
+    <div class="card pad w-only" style="margin-bottom:16px"><label class="l">Nouvelle demande</label><textarea class="f" id="rq" rows="3" placeholder="ex. Ajouter un export PDF du bilan de séance pour chaque joueur"></textarea><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn pri" id="addR">Ajouter la demande</button></div></div>
+    <div class="card">${rs.length ? rs.map(r => `<div class="req ${r.done ? 'done' : ''}"><input type="checkbox" data-done="${r.id}" ${r.done ? 'checked' : ''} ${S.canWrite ? '' : 'disabled'} style="margin-top:3px"><div class="w"><div class="tx">${esc(r.text)}</div><div class="m">${r.done ? 'Réalisée · ' : 'En attente · '}proposée par ${esc(who(r.createdBy))} le ${new Date(r.createdAt).toLocaleDateString('fr-FR')}</div></div><button class="btn sm danger w-only" data-delr="${r.id}">${ICON.trash}</button></div>`).join('') : '<div class="req muted">Aucune demande pour l’instant.</div>'}</div>`;
+}
+
+/* ---------- liaisons ---------- */
+function bindView(r) {
+  const m = $('#main');
+  const addP = () => playerModal(); ['#addP', '#addP2'].forEach(s => { const b = $(s, m); if (b) b.onclick = addP; });
+  const q = $('#q', m); if (q) q.oninput = () => { S.ui.q = q.value; render(); };
+  $$('#catf [data-c]', m).forEach(b => b.onclick = () => { S.ui.cat = b.dataset.c; render(); });
+  $$('#scf [data-c]', m).forEach(b => b.onclick = () => { S.ui.scat = b.dataset.c; render(); });
+  const spl = $('#spl', m); if (spl) spl.onchange = () => { S.ui.splayer = spl.value; render(); };
+  $$('[data-go]', m).forEach(t => t.onclick = () => location.hash = t.dataset.go);
+  $$('[data-newsess]', m).forEach(b => b.onclick = () => { if (!alive(S.players).length) { playerModal(); return; } sessionModal({ playerId: r.v === 'player' ? r.id : (S.ui.splayer !== 'all' ? S.ui.splayer : alive(S.players)[0].id), cat: b.dataset.newsess || 'entrainement' }); });
+  const ep = $('#editP', m); if (ep) ep.onclick = () => playerModal(Object.assign({}, S.players.get(r.id)));
+  const dp = $('#delP', m); if (dp) dp.onclick = async () => { const p = S.players.get(r.id); if (await confirmBox('Supprimer ' + p.name + ' ?', 'Le profil et ses séances passent dans la corbeille. Vous pourrez les restaurer à tout moment.', 'Mettre à la corbeille', true)) { await softDelete('players/' + r.id, `Profil ${p.name} supprimé`); location.hash = 'joueurs'; } };
+  $$('[data-restore]', m).forEach(b => b.onclick = () => restore(b.dataset.restore));
+  $$('[data-purge]', m).forEach(b => b.onclick = () => purge(b.dataset.purge));
+  const at = $('#addT', m); if (at) at.onclick = () => typeModal();
+  $$('.typ', m).forEach(row => {
+    const id = row.dataset.t;
+    row.querySelector('[data-col]').onchange = e => patch('Couleur modifiée', 'exerciseTypes/' + id, { color: e.target.value });
+    row.querySelector('[data-name]').onchange = e => { const v = e.target.value.trim(); if (v) patch('Type renommé', 'exerciseTypes/' + id, { name: v }); };
+    const d = row.querySelector('[data-delt]'); if (d) d.onclick = () => softDelete('exerciseTypes/' + id, `Type « ${typeOf(id).name} » supprimé`);
+  });
+  const ar = $('#addR', m); if (ar) ar.onclick = async () => { const t = $('#rq').value.trim(); if (!t) return; await changeMany('Demande ajoutée', [{ path: 'requests/' + uid(), data: { text: t, done: false, deleted: false, createdAt: Date.now(), createdBy: S.meId } }]); };
+  $$('[data-done]', m).forEach(c => c.onchange = () => patch(c.checked ? 'Demande marquée réalisée' : 'Demande rouverte', 'requests/' + c.dataset.done, { done: c.checked }));
+  $$('[data-delr]', m).forEach(b => b.onclick = () => softDelete('requests/' + b.dataset.delr, 'Demande supprimée'));
+}
+
+/* =====================================================================
+   PAGE SÉANCE
+   ===================================================================== */
+let SP = null;
+const GUT = 48, RP = 14;
+function unmountSession() {
+  if (!SP) return;
+  if (SP.unsubAnn) SP.unsubAnn(); if (SP.ro) SP.ro.disconnect(); if (SP.raf) cancelAnimationFrame(SP.raf);
+  if (SP.videoUrl && SP.videoUrl.startsWith('blob:') && !Object.values(S.videoCache).includes(SP.videoUrl)) URL.revokeObjectURL(SP.videoUrl);
+  SP = null;
+}
+function mountSession(id, ro) {
+  const s = S.sessions.get(id); const main = $('#main');
+  if (!s) { unmountSession(); main.innerHTML = `<a class="back" href="#seances">← Séances</a><div class="empty"><b>Séance introuvable</b>Elle a peut-être été supprimée définitivement.</div>`; return; }
+  unmountSession();
+  SP = { id, ann: new Map(), data: { hr: null, acc: null, pl: null }, rev: {}, v0: 0, v1: 60, cursor: 0, hover: null, sel: null, edit: null, lane: 'hr', tMin: 0, tMax: 60, video: null, videoUrl: null, fitted: false };
+  main.innerHTML = ro + `<div id="sHead" class="shead"></div>
+    <div id="sDel"></div>
+    <div class="sgrid">
+      <div style="min-width:0;display:flex;flex-direction:column;gap:16px">
+        <div class="card charts">
+          <div class="ctool"><button class="btn sm ic" data-z="in" title="Zoom avant">＋</button><button class="btn sm ic" data-z="out" title="Zoom arrière">－</button><button class="btn sm" data-z="all">Tout voir</button><button class="btn sm" data-z="sel" id="zSel" disabled>Zoomer sur la sélection</button>
+            <span class="rd">Curseur <b id="rdC">0:00</b> · Vue <span id="rdV"></span></span></div>
+          <div class="trk" data-k="hr"><div class="tl"><i style="background:var(--hr)"></i>Fréquence cardiaque · bpm</div><canvas height="190"></canvas></div>
+          <div class="trk" data-k="acc"><div class="tl"><i style="background:var(--acc)"></i>Intensité accélérométrique · g</div><canvas height="150"></canvas></div>
+          <div class="trk lanes" data-k="lanes"><canvas height="104"></canvas></div>
+          <div class="trk ov" data-k="ov"><canvas height="40"></canvas></div>
+          <div class="hint">Glisser sur un graphique ou une ligne d’annotation = sélectionner une plage · clic = placer le curseur (et la vidéo) · molette = zoom · Maj + molette ou barre du bas = se déplacer · Espace = lecture/pause</div>
+        </div>
+        <div class="card" id="annTable"></div>
+        <div class="card" id="typeSum"></div>
+        <div class="card" id="dataPanel"></div>
+      </div>
+      <div class="sidep">
+        <div class="card" id="vcard"></div>
+        <div class="card af" id="annForm"></div>
+      </div>
+    </div>`;
+  bindSessionStatic();
+  SP.unsubAnn = S.db.collection('annotations').where('sessionId', '==', id).onSnapshot(snap => {
+    if (!SP || SP.id !== id) return;
+    SP.ann.clear(); snap.docs.forEach(d => SP.ann.set(d.id, Object.assign({ id: d.id }, d.data())));
+    if (SP.edit && SP.edit.id && !SP.ann.has(SP.edit.id)) SP.edit = null;
+    renderAnnTable(); renderAnnForm(); draw();
+    resolveNames([...SP.ann.values()].map(a => a.createdBy));
+  }, e => toast('Annotations : ' + errMsg(e), { err: true }));
+  updateSession();
+}
+function curSess() { return SP && S.sessions.get(SP.id); }
+function updateSession() {
+  const s = curSess(); if (!s) { mountSession(SP.id, ''); return; }
+  renderSessHead(); renderDataPanel(); renderVideoCard(); renderAnnForm(); renderAnnTable();
+  for (const k of ['hr', 'acc']) {
+    const meta = s[k]; const rev = meta ? meta.rev : null;
+    if (SP.rev[k] !== rev) { SP.rev[k] = rev; if (k === 'hr') SP.hrR = null; else SP.accR = null; loadSeries(k, meta); }
+  }
+  computeBounds(); draw();
+}
+async function loadSeries(k, meta) {
+  const id = SP.id;
+  if (!meta) { SP.data[k] = null; if (k === 'acc') SP.data.pl = null; computeBounds(); renderSessHead(); renderAnnTable(); draw(); return; }
+  const fetchKind = async (kind, n) => {
+    const snaps = await Promise.all(Array.from({ length: n }, (_, i) => S.db.doc(`series/${id}-${kind}-${i}`).get()));
+    const parts = snaps.map(sn => sn.exists ? (sn.data().v || []) : []);
+    const tot = parts.reduce((a, p) => a + p.length, 0); const out = new Float64Array(tot); let o = 0;
+    for (const p of parts) for (const x of p) out[o++] = x == null ? NaN : x;
+    return out;
+  };
+  try {
+    const v = await fetchKind(k, meta.chunks || 0);
+    if (!SP || SP.id !== id) return;
+    SP.data[k] = { v, dt: meta.dt || 1 };
+    if (k === 'acc') { const pl = await fetchKind('pl', meta.plChunks || 0); if (!SP || SP.id !== id) return; SP.data.pl = { v: pl, dt: 1 }; }
+  } catch (e) { toast('Chargement des données : ' + errMsg(e), { err: true }); }
+  computeBounds(); if (!SP.fitted && (SP.data.hr || SP.data.acc)) { SP.v0 = SP.tMin; SP.v1 = SP.tMax; SP.fitted = true; }
+  renderSessHead(); renderAnnTable(); draw();
+}
+function offsets() { const s = curSess() || {}; return { hr: (s.hr && s.hr.offset) || 0, acc: (s.acc && s.acc.offset) || 0, video: (s.video && s.video.offset) || 0 }; }
+function computeBounds() {
+  if (!SP) return; const o = offsets(); let a = 0, b = 0; const s = curSess() || {};
+  if (SP.data.hr) { a = Math.min(a, o.hr); b = Math.max(b, o.hr + SP.data.hr.v.length * SP.data.hr.dt); }
+  if (SP.data.acc) { a = Math.min(a, o.acc); b = Math.max(b, o.acc + SP.data.acc.v.length * SP.data.acc.dt); }
+  const vd = (SP.video && isFinite(SP.video.duration) && SP.video.duration) || (s.video && s.video.duration) || 0;
+  if (vd) { a = Math.min(a, o.video); b = Math.max(b, o.video + vd); }
+  for (const an of SP.ann.values()) if (!an.deleted) b = Math.max(b, an.b);
+  if (b - a < 30) b = a + 60;
+  SP.tMin = a; SP.tMax = b;
+  if (!SP.fitted || SP.v1 - SP.v0 <= 0) { SP.v0 = a; SP.v1 = b; if (SP.data.hr || SP.data.acc || vd) SP.fitted = true; }
+}
+function zonesOf(v, fcMax) {
+  const c = ZONES.map(() => 0); let n = 0;
+  for (const x of v) if (isFinite(x)) { const p = x / fcMax * 100; const i = ZONES.findIndex(z => p >= z.a && p < z.b); if (i >= 0) { c[i]++; n++; } }
+  return { c, n };
+}
+function renderSessHead() {
+  const s = curSess(); if (!s) return; const p = S.players.get(s.playerId) || {};
+  const hr = s.hr && s.hr.summary, acc = s.acc && s.acc.summary; const nAnn = [...SP.ann.values()].filter(a => !a.deleted).length;
+  let zones = '';
+  if (SP.data.hr && p.fcMax) {
+    const z = zonesOf(SP.data.hr.v, p.fcMax);
+    if (z.n) zones = `<div class="zones">${ZONES.map((zz, i) => z.c[i] ? `<span style="flex:${z.c[i]};background:${zz.c}" title="${zz.n} : ${fmtDur(z.c[i])}">${z.c[i] / z.n > 0.06 ? zz.n + ' · ' + fmtDur(z.c[i]) : ''}</span>` : '').join('')}</div>`;
+  }
+  $('#sHead').innerHTML = `<a class="back" href="#joueur-${s.playerId}">← ${esc(p.name || 'Joueur')}</a>
+    <div class="ph" style="margin-bottom:16px"><div><div class="eyebrow">${fmtDate(s.date)} · ${esc(p.name || '')}</div><h1 class="t">${esc(s.title)}</h1>${s.notes ? `<div class="sub">${esc(s.notes)}</div>` : ''}</div>
+      <div class="acts"><div class="seg" id="catSeg">${CAT_KEYS.map(k => `<button data-cat="${k}" class="${s.category === k ? 'on' : ''}" style="--c:${CATS[k].c}" ${S.canWrite ? '' : 'disabled'}><i style="background:${CATS[k].c}"></i>${esc(catLabel(k))}</button>`).join('')}</div>
+      <button class="btn w-only" id="editS">Modifier</button><button class="btn danger w-only" id="delS">${ICON.trash}</button></div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Durée</div><div class="v">${fmtDur(sessDur(s))}</div></div>
+      <div class="kpi"><div class="k">FC moyenne</div><div class="v">${fmtN(hr && hr.avg)}<small>bpm</small></div></div>
+      <div class="kpi"><div class="k">FC max</div><div class="v">${fmtN(hr && hr.max)}<small>bpm</small></div></div>
+      <div class="kpi"><div class="k">% FC max moy.</div><div class="v">${hr && hr.avg && p.fcMax ? fmtN(hr.avg / p.fcMax * 100) : '—'}<small>%</small></div></div>
+      <div class="kpi"><div class="k">Intensité moy.</div><div class="v">${fmtN(acc && acc.mean, 2)}<small>g</small></div></div>
+      <div class="kpi"><div class="k">Charge (PlayerLoad)</div><div class="v">${fmtN(acc && acc.load)}<small>u.a.</small></div></div>
+      <div class="kpi"><div class="k">Annotations</div><div class="v">${nAnn}</div></div>
+    </div>${zones}${!p.fcMax && SP.data.hr ? `<div class="note" style="margin-top:10px">Renseignez la FC max de ${esc(p.name || 'ce joueur')} dans son profil pour afficher les zones d’intensité.</div>` : ''}`;
+  $$('#catSeg [data-cat]').forEach(b => b.onclick = () => { if (s.category !== b.dataset.cat) patch(`Séance classée en ${catLabel(b.dataset.cat)}`, 'sessions/' + s.id, { category: b.dataset.cat }); });
+  const e = $('#editS'); if (e) e.onclick = () => sessionModal({ session: Object.assign({}, s) });
+  const d = $('#delS'); if (d) d.onclick = async () => { if (await confirmBox('Supprimer cette séance ?', 'Elle passe dans la corbeille avec ses données et annotations ; vous pourrez la restaurer.', 'Mettre à la corbeille', true)) { const pid = s.playerId; await softDelete('sessions/' + s.id, 'Séance supprimée'); location.hash = 'joueur-' + pid; } };
+  $('#sDel').innerHTML = s.deleted ? `<div class="banner">Cette séance est dans la corbeille. <button class="link w-only" id="resS">Restaurer</button></div>` : '';
+  const rs = $('#resS'); if (rs) rs.onclick = () => restore('sessions/' + s.id);
+}
+
+/* ---------- rendu des graphiques ---------- */
+function fit(cv) {
+  const dpr = window.devicePixelRatio || 1; const w = cv.clientWidth, h = +cv.getAttribute('height');
+  if (cv._w !== w || cv._dpr !== dpr) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px'; cv._w = w; cv._h = h; cv._dpr = dpr; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return ctx;
+}
+const tx = (t, w) => GUT + (t - SP.v0) / (SP.v1 - SP.v0) * (w - GUT - RP);
+const xt = (x, w) => SP.v0 + (x - GUT) / (w - GUT - RP) * (SP.v1 - SP.v0);
+function tickStep(span, px) { const steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200]; for (const s of steps) if (px / (span / s) >= 80) return s; return 7200; }
+let drawQ = 0;
+function draw() { if (!SP || drawQ) return; drawQ = requestAnimationFrame(() => { drawQ = 0; drawNow(); }); }
+function seriesStats(ser, off) { // min/max robustes pour l'axe
+  if (!ser) return null; const a = P.quantile(Array.from(ser.v).filter((_, i) => i % 3 === 0), 0.003), b = P.quantile(Array.from(ser.v).filter((_, i) => i % 3 === 0), 0.997); return { a, b };
+}
+function drawSeries(ctx, ser, off, w, top, h, ymin, ymax, color, lw = 1.5) {
+  const { v, dt } = ser; const iA = Math.max(0, Math.floor((SP.v0 - off) / dt) - 1), iB = Math.min(v.length - 1, Math.ceil((SP.v1 - off) / dt) + 1);
+  if (iB < iA) return;
+  const Y = val => top + h - (Math.min(ymax, Math.max(ymin, val)) - ymin) / (ymax - ymin) * h;
+  ctx.save(); ctx.beginPath(); ctx.rect(GUT, top - 2, w - GUT - RP, h + 4); ctx.clip();
+  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.beginPath();
+  const pw = w - GUT - RP; let pen = false;
+  if (iB - iA <= pw * 1.5) {
+    for (let i = iA; i <= iB; i++) { const val = v[i]; if (!isFinite(val)) { pen = false; continue; } const x = tx(off + i * dt, w), y = Y(val); if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; } }
+  } else {
+    let cur = null, mn = 0, mx = 0;
+    const flush = () => { if (cur === null) return; if (pen) ctx.lineTo(cur, Y(mn)); else { ctx.moveTo(cur, Y(mn)); pen = true; } ctx.lineTo(cur, Y(mx)); };
+    for (let i = iA; i <= iB; i++) {
+      const val = v[i]; if (!isFinite(val)) { flush(); cur = null; pen = false; continue; }
+      const px = Math.round(tx(off + i * dt, w));
+      if (px !== cur) { flush(); cur = px; mn = mx = val; } else { if (val < mn) mn = val; if (val > mx) mx = val; }
+    }
+    flush();
+  }
+  ctx.stroke(); ctx.restore();
+}
+function valueAt(ser, off, t) { if (!ser) return NaN; const i = Math.round((t - off) / ser.dt); return i >= 0 && i < ser.v.length ? ser.v[i] : NaN; }
+function drawBands(ctx, w, top, h) {
+  for (const a of SP.ann.values()) {
+    if (a.deleted) continue; const x0 = tx(a.a, w), x1 = tx(a.b, w); if (x1 < GUT || x0 > w - RP) continue;
+    const c = typeOf(a.typeId).color; const X0 = Math.max(GUT, x0), X1 = Math.min(w - RP, x1);
+    ctx.fillStyle = c + '1c'; ctx.fillRect(X0, top, X1 - X0, h); ctx.fillStyle = c; ctx.fillRect(X0, top, X1 - X0, 3);
+    if (SP.edit && SP.edit.id === a.id) { ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.strokeRect(X0 + .5, top + .5, X1 - X0 - 1, h - 1); }
+  }
+  const sel = SP.edit ? { a: SP.edit.a, b: SP.edit.b } : SP.sel;
+  if (sel) { const x0 = Math.max(GUT, tx(sel.a, w)), x1 = Math.min(w - RP, tx(sel.b, w)); if (x1 > x0) { ctx.fillStyle = 'rgba(18,24,32,.07)'; ctx.fillRect(x0, top, x1 - x0, h); ctx.strokeStyle = 'rgba(18,24,32,.55)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0 + .5, top); ctx.lineTo(x0 + .5, top + h); ctx.moveTo(x1 - .5, top); ctx.lineTo(x1 - .5, top + h); ctx.stroke(); ctx.setLineDash([]); } }
+}
+function drawCursor(ctx, w, top, h, label) {
+  const xc = tx(SP.cursor, w); if (xc >= GUT && xc <= w - RP) { ctx.strokeStyle = '#121820'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xc, top); ctx.lineTo(xc, top + h); ctx.stroke(); }
+  if (SP.hover != null) { const xh = tx(SP.hover, w); ctx.strokeStyle = 'rgba(18,24,32,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(xh + .5, top); ctx.lineTo(xh + .5, top + h); ctx.stroke(); ctx.setLineDash([]);
+    if (label) { ctx.font = '600 11px JetBrains Mono, monospace'; const tw = ctx.measureText(label).width + 12; let lx = xh + 6; if (lx + tw > w - RP) lx = xh - tw - 6; ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx, top + 6, tw, 19, 5) : ctx.rect(lx, top + 6, tw, 19); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(label, lx + 6, top + 19.5); } }
+}
+function drawYAxis(ctx, w, top, h, ymin, ymax, step, fmt) {
+  ctx.font = '500 10.5px JetBrains Mono, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let y = Math.ceil(ymin / step) * step; y <= ymax + 1e-9; y += step) {
+    const py = top + h - (y - ymin) / (ymax - ymin) * h;
+    ctx.strokeStyle = '#efece6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(GUT, Math.round(py) + .5); ctx.lineTo(w - RP, Math.round(py) + .5); ctx.stroke();
+    ctx.fillStyle = '#8a8f97'; ctx.fillText(fmt(y), GUT - 8, py);
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+function drawEmpty(ctx, w, h, txt) { ctx.fillStyle = '#a3a7ae'; ctx.font = '500 12.5px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(txt, GUT + (w - GUT - RP) / 2, h / 2 + 4); ctx.textAlign = 'left'; }
+function drawNow() {
+  if (!SP) return; const o = offsets(); const s = curSess() || {}; const p = S.players.get(s.playerId) || {};
+  // HR
+  { const cv = $('.trk[data-k=hr] canvas'); if (!cv) return; const ctx = fit(cv); const w = cv._w, h = cv._h, top = 30, ch = h - 40;
+    const ser = SP.data.hr;
+    if (!ser) { drawBands(ctx, w, top, ch); drawEmpty(ctx, w, h, s.hr ? 'Chargement…' : 'Aucune donnée cardio — importez un CSV dans « Données & synchronisation »'); }
+    else {
+      if (!SP.hrR) { const st = seriesStats(ser); SP.hrR = { a: Math.floor((st.a - 6) / 10) * 10, b: Math.ceil((st.b + 6) / 10) * 10 }; if (p.fcMax) SP.hrR.b = Math.max(SP.hrR.b, Math.min(p.fcMax + 5, 230)); }
+      const { a: ymin, b: ymax } = SP.hrR;
+      if (p.fcMax) { for (const z of ZONES.slice(2)) { const ya = z.a / 100 * p.fcMax, yb = Math.min(ymax, z.b / 100 * p.fcMax); if (yb <= ymin || ya >= ymax) continue; const py0 = top + ch - (Math.max(ya, ymin) - ymin) / (ymax - ymin) * ch, py1 = top + ch - (yb - ymin) / (ymax - ymin) * ch; ctx.fillStyle = z.c + '12'; ctx.fillRect(GUT, py1, w - GUT - RP, py0 - py1); ctx.fillStyle = z.c; ctx.font = '700 9.5px Inter'; ctx.fillText(z.n, w - RP - 18, py1 + 11); } }
+      drawYAxis(ctx, w, top, ch, ymin, ymax, (ymax - ymin) > 100 ? 20 : 10, v => v);
+      drawBands(ctx, w, top, ch);
+      drawSeries(ctx, ser, o.hr, w, top, ch, ymin, ymax, '#d64527', 1.6);
+    }
+    const hv = SP.hover != null ? valueAt(ser, o.hr, SP.hover) : NaN;
+    drawCursor(ctx, w, top, ch, SP.hover != null ? fmtClock(SP.hover) + (isFinite(hv) ? `  ${Math.round(hv)} bpm${p.fcMax ? ' · ' + Math.round(hv / p.fcMax * 100) + '%' : ''}` : '') : null);
+  }
+  // ACC
+  { const cv = $('.trk[data-k=acc] canvas'); const ctx = fit(cv); const w = cv._w, h = cv._h, top = 30, ch = h - 38; const ser = SP.data.acc;
+    if (!ser) { drawBands(ctx, w, top, ch); drawEmpty(ctx, w, h, s.acc ? 'Chargement…' : 'Aucune donnée accéléromètre — importez un CSV'); }
+    else {
+      if (!SP.accR) { const st = seriesStats(ser); const b = Math.max(0.2, st.b * 1.15); const step = b > 4 ? 1 : b > 2 ? 0.5 : b > 0.8 ? 0.25 : 0.1; SP.accR = { a: 0, b: Math.ceil(b / step) * step, step }; }
+      drawYAxis(ctx, w, top, ch, 0, SP.accR.b, SP.accR.step, v => v.toFixed(SP.accR.step < 0.5 ? 2 : 1));
+      drawBands(ctx, w, top, ch);
+      drawSeries(ctx, ser, o.acc, w, top, ch, 0, SP.accR.b, '#2458c8', 1.2);
+    }
+    const av = SP.hover != null ? valueAt(ser, o.acc, SP.hover) : NaN;
+    drawCursor(ctx, w, top, ch, SP.hover != null ? fmtClock(SP.hover) + (isFinite(av) ? `  ${av.toFixed(2)} g` : '') : null);
+  }
+  // Lanes + axe
+  { const cv = $('.trk[data-k=lanes] canvas'); const ctx = fit(cv); const w = cv._w, h = cv._h; const LH = 24, top = 6;
+    const lanes = ['hr', 'acc', 'video'];
+    lanes.forEach((ln, i) => {
+      const y = top + i * LH; ctx.fillStyle = i % 2 ? '#fbfaf7' : '#f6f4ef'; ctx.fillRect(GUT, y, w - GUT - RP, LH - 2);
+      ctx.fillStyle = LANES[ln].hex; ctx.font = '700 10px Inter'; ctx.textAlign = 'right'; ctx.fillText(LANES[ln].short, GUT - 8, y + 15); ctx.textAlign = 'left';
+    });
+    const sel = SP.edit ? { a: SP.edit.a, b: SP.edit.b, lane: SP.edit.lane } : SP.sel;
+    if (sel) { const x0 = Math.max(GUT, tx(sel.a, w)), x1 = Math.min(w - RP, tx(sel.b, w)); ctx.fillStyle = 'rgba(18,24,32,.06)'; ctx.fillRect(x0, top, x1 - x0, LH * 3 - 2); }
+    for (const a of SP.ann.values()) {
+      if (a.deleted) continue; const i = lanes.indexOf(a.lane); if (i < 0) continue;
+      const x0 = tx(a.a, w), x1 = tx(a.b, w); if (x1 < GUT || x0 > w - RP) continue;
+      const X0 = Math.max(GUT, x0), X1 = Math.min(w - RP, x1), y = top + i * LH + 2; const t = typeOf(a.typeId);
+      ctx.fillStyle = t.color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(X0, y, Math.max(2, X1 - X0), LH - 6, 4) : ctx.rect(X0, y, Math.max(2, X1 - X0), LH - 6); ctx.fill();
+      if (SP.edit && SP.edit.id === a.id) { ctx.strokeStyle = '#121820'; ctx.lineWidth = 2; ctx.stroke(); }
+      if (X1 - X0 > 34) { ctx.save(); ctx.beginPath(); ctx.rect(X0, y, X1 - X0 - 4, LH - 6); ctx.clip(); ctx.fillStyle = '#fff'; ctx.font = '600 10.5px Inter'; ctx.fillText(t.name, X0 + 6, y + 12.5); ctx.restore(); }
+    }
+    if (sel && !SP.edit) { const i = lanes.indexOf(sel.lane); if (i >= 0) { const x0 = Math.max(GUT, tx(sel.a, w)), x1 = Math.min(w - RP, tx(sel.b, w)); ctx.strokeStyle = '#121820'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.strokeRect(x0 + .5, top + i * LH + 2.5, x1 - x0 - 1, LH - 7); ctx.setLineDash([]); } }
+    // axe temps
+    const ay = top + LH * 3 + 4; const span = SP.v1 - SP.v0; const st = tickStep(span, w - GUT - RP);
+    ctx.font = '500 10.5px JetBrains Mono, monospace'; ctx.fillStyle = '#8a8f97'; ctx.textAlign = 'center';
+    for (let t = Math.ceil(SP.v0 / st) * st; t <= SP.v1; t += st) { const x = tx(t, w); if (x < GUT || x > w - RP) continue; ctx.fillRect(Math.round(x), ay, 1, 4); ctx.fillText(fmtClock(t), x, ay + 15); }
+    ctx.textAlign = 'left';
+    const xc = tx(SP.cursor, w); if (xc >= GUT && xc <= w - RP) { ctx.strokeStyle = '#121820'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xc, top); ctx.lineTo(xc, ay + 2); ctx.stroke(); ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.moveTo(xc - 5, top - 5); ctx.lineTo(xc + 5, top - 5); ctx.lineTo(xc, top + 1); ctx.fill(); }
+    if (SP.hover != null) { const xh = tx(SP.hover, w); ctx.strokeStyle = 'rgba(18,24,32,.35)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(xh + .5, top); ctx.lineTo(xh + .5, top + LH * 3); ctx.stroke(); ctx.setLineDash([]); }
+  }
+  // Vue d'ensemble
+  { const cv = $('.trk[data-k=ov] canvas'); const ctx = fit(cv); const w = cv._w, h = cv._h; const a = SP.tMin, b = SP.tMax;
+    const X = t => GUT + (t - a) / (b - a) * (w - GUT - RP);
+    ctx.fillStyle = '#f6f4ef'; ctx.fillRect(GUT, 4, w - GUT - RP, h - 8);
+    const ser = SP.data.hr || SP.data.acc; const off = SP.data.hr ? o.hr : o.acc;
+    if (ser) { let mn = Infinity, mx = -Infinity; for (let i = 0; i < ser.v.length; i += Math.max(1, Math.floor(ser.v.length / 3000))) { const x = ser.v[i]; if (isFinite(x)) { if (x < mn) mn = x; if (x > mx) mx = x; } }
+      ctx.strokeStyle = SP.data.hr ? '#d6452788' : '#2458c888'; ctx.lineWidth = 1; ctx.beginPath(); let pen = false; const stp = Math.max(1, Math.floor(ser.v.length / (w * 2)));
+      for (let i = 0; i < ser.v.length; i += stp) { const x = ser.v[i]; if (!isFinite(x)) { pen = false; continue; } const px = X(off + i * ser.dt), py = h - 7 - (x - mn) / (mx - mn || 1) * (h - 14); if (pen) ctx.lineTo(px, py); else { ctx.moveTo(px, py); pen = true; } } ctx.stroke(); }
+    for (const an of SP.ann.values()) if (!an.deleted) { ctx.fillStyle = typeOf(an.typeId).color; ctx.fillRect(X(an.a), h - 6, Math.max(1, X(an.b) - X(an.a)), 3); }
+    const x0 = X(SP.v0), x1 = X(SP.v1); ctx.fillStyle = 'rgba(18,24,32,.10)'; ctx.fillRect(x0, 2, x1 - x0, h - 4); ctx.strokeStyle = '#121820'; ctx.lineWidth = 1.5; ctx.strokeRect(x0 + .75, 2.75, Math.max(2, x1 - x0 - 1.5), h - 5.5);
+    ctx.fillStyle = '#121820'; ctx.fillRect(X(SP.cursor) - .75, 2, 1.5, h - 4);
+    ctx.fillStyle = '#8a8f97'; ctx.font = '700 9px Inter'; ctx.textAlign = 'right'; ctx.fillText('VUE', GUT - 8, h / 2 + 3); ctx.textAlign = 'left';
+  }
+  $('#rdC').textContent = fmtClock(SP.cursor, true); $('#rdV').textContent = fmtClock(SP.v0) + ' → ' + fmtClock(SP.v1);
+  const zs = $('#zSel'); if (zs) zs.disabled = !(SP.sel || SP.edit);
+  if (SP.video) { const vt = $('#vt'); if (vt) vt.textContent = 'vidéo ' + fmtClock(SP.video.currentTime || 0, true); }
+}
+function clampView() {
+  const span = Math.max(5, Math.min(SP.v1 - SP.v0, (SP.tMax - SP.tMin) * 1.05));
+  let a = SP.v0; if (a < SP.tMin - span * 0.02) a = SP.tMin - span * 0.02; if (a + span > SP.tMax + span * 0.02) a = SP.tMax + span * 0.02 - span;
+  SP.v0 = a; SP.v1 = a + span;
+}
+function zoomAt(t, f) { SP.v0 = t - (t - SP.v0) * f; SP.v1 = t + (SP.v1 - t) * f; clampView(); draw(); }
+function setCursor(t, seek) {
+  SP.cursor = t;
+  if (seek && SP.video && isFinite(SP.video.duration)) { const vt = t - offsets().video; if (vt >= 0 && vt <= SP.video.duration) SP.video.currentTime = vt; }
+  draw();
+}
+function bindSessionStatic() {
+  const lanes = ['hr', 'acc', 'video'];
+  $$('.trk').forEach(trk => {
+    const k = trk.dataset.k; const cv = trk.querySelector('canvas'); let down = null;
+    const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    if (k === 'ov') {
+      const T = x => SP.tMin + (x - GUT) / (cv._w - GUT - RP) * (SP.tMax - SP.tMin);
+      cv.addEventListener('pointerdown', e => { const { x } = pos(e); cv.setPointerCapture(e.pointerId); const t = T(x); const span = SP.v1 - SP.v0; if (t < SP.v0 || t > SP.v1) { SP.v0 = t - span / 2; SP.v1 = t + span / 2; clampView(); draw(); } down = { t, v0: SP.v0 }; });
+      cv.addEventListener('pointermove', e => { if (!down) return; const span = SP.v1 - SP.v0; SP.v0 = down.v0 + (T(pos(e).x) - down.t); SP.v1 = SP.v0 + span; clampView(); draw(); });
+      cv.addEventListener('pointerup', () => down = null);
+      return;
+    }
+    const laneAt = y => k === 'lanes' ? lanes[Math.max(0, Math.min(2, Math.floor((y - 6) / 24)))] : (k === 'hr' ? 'hr' : 'acc');
+    cv.addEventListener('pointerdown', e => { const { x, y } = pos(e); if (x < GUT) return; cv.setPointerCapture(e.pointerId); down = { x, t: xt(x, cv._w), moved: false, lane: laneAt(y), y }; });
+    cv.addEventListener('pointermove', e => {
+      const { x } = pos(e); SP.hover = x >= GUT && x <= cv._w - RP ? xt(x, cv._w) : null;
+      if (down) { if (Math.abs(x - down.x) > 4) down.moved = true; if (down.moved) { const t = Math.max(SP.tMin, Math.min(SP.tMax, xt(x, cv._w))); const a = Math.max(SP.tMin, Math.min(down.t, t)), b = Math.min(SP.tMax, Math.max(down.t, t)); if (SP.edit) SP.draft = null; SP.edit = null; SP.sel = { a, b, lane: down.lane }; } }
+      draw();
+    });
+    cv.addEventListener('pointerleave', () => { SP.hover = null; draw(); });
+    cv.addEventListener('pointerup', e => {
+      if (!down) return; const d = down; down = null;
+      if (!d.moved) {
+        if (k === 'lanes') { const ln = laneAt(d.y); const hit = [...SP.ann.values()].filter(a => !a.deleted && a.lane === ln && d.t >= a.a && d.t <= a.b).sort((a, b) => (a.b - a.a) - (b.b - b.a))[0]; if (hit) { openEdit(hit.id); return; } }
+        setCursor(d.t, true);
+      } else { if (SP.sel && SP.sel.b - SP.sel.a >= 1) { renderAnnForm(true); const f = $('#af-type'); if (f) f.focus(); } else { SP.sel = null; draw(); } }
+    });
+    cv.addEventListener('wheel', e => {
+      e.preventDefault(); const { x } = pos(e);
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const d = (e.shiftKey ? e.deltaY : e.deltaX) / (cv._w - GUT - RP) * (SP.v1 - SP.v0); SP.v0 += d; SP.v1 += d; clampView(); draw(); }
+      else zoomAt(xt(Math.max(GUT, x), cv._w), e.deltaY > 0 ? 1.18 : 1 / 1.18);
+    }, { passive: false });
+    cv.addEventListener('dblclick', () => { SP.v0 = SP.tMin; SP.v1 = SP.tMax; draw(); });
+  });
+  $$('[data-z]').forEach(b => b.onclick = () => {
+    const z = b.dataset.z; const mid = (SP.v0 + SP.v1) / 2;
+    if (z === 'in') zoomAt(SP.cursor >= SP.v0 && SP.cursor <= SP.v1 ? SP.cursor : mid, 0.6);
+    else if (z === 'out') zoomAt(mid, 1.6);
+    else if (z === 'all') { SP.v0 = SP.tMin; SP.v1 = SP.tMax; draw(); }
+    else if (z === 'sel') { const s = SP.edit || SP.sel; if (s) { const pad = Math.max(3, (s.b - s.a) * 0.15); SP.v0 = s.a - pad; SP.v1 = s.b + pad; clampView(); draw(); } }
+  });
+  SP.ro = new ResizeObserver(() => draw()); SP.ro.observe($('.charts'));
+}
+function sessionKey(e) {
+  if (e.key === ' ' && SP.video) { e.preventDefault(); SP.video.paused ? SP.video.play() : SP.video.pause(); }
+  else if (e.key === 'Escape') { SP.sel = null; SP.edit = null; renderAnnForm(true); draw(); }
+  else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const d = (e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 10 : 1); setCursor(SP.cursor + d, true); }
+}
+
+/* ---------- statistiques d'une plage ---------- */
+function rangeStats(a, b) {
+  const o = offsets(); const p = S.players.get((curSess() || {}).playerId) || {};
+  const r = { dur: b - a };
+  const sl = (ser, off) => { if (!ser) return []; const i0 = Math.max(0, Math.floor((a - off) / ser.dt)), i1 = Math.min(ser.v.length - 1, Math.ceil((b - off) / ser.dt) - 1); const out = []; for (let i = i0; i <= i1; i++) if (isFinite(ser.v[i])) out.push(ser.v[i]); return out; };
+  const hr = sl(SP.data.hr, o.hr); if (hr.length) { r.hrAvg = hr.reduce((x, y) => x + y, 0) / hr.length; r.hrMax = Math.max(...hr); if (p.fcMax) r.pct = r.hrAvg / p.fcMax * 100; }
+  const ac = sl(SP.data.acc, o.acc); if (ac.length) r.acc = ac.reduce((x, y) => x + y, 0) / ac.length;
+  const pl = sl(SP.data.pl, o.acc); if (pl.length) { r.load = pl.reduce((x, y) => x + y, 0); r.loadMin = r.load / (r.dur / 60); }
+  return r;
+}
+
+/* ---------- formulaire d'annotation ---------- */
+function openEdit(id) { const a = SP.ann.get(id); if (!a) return; SP.sel = null; SP.edit = clone(a); renderAnnForm(true); draw(); }
+function renderAnnForm(force) {
+  const box = $('#annForm'); if (!box || !SP) return;
+  if (!force && box.contains(document.activeElement) && document.activeElement !== document.body) return;
+  const ed = SP.edit, sel = SP.sel; const types = alive(S.types).sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.name.localeCompare(b.name, 'fr'));
+  if (!ed && !sel) {
+    box.innerHTML = `<div class="hd"><span class="eyebrow">Annoter un exercice</span></div><div class="afh">Pour annoter un exercice sur le cardio, l’accéléromètre ou la vidéo :<ol><li><b>Glissez</b> sur un graphique (ou sur la ligne FC / ACC / VID) pour choisir une plage,</li><li>ou utilisez <b>Début</b> / <b>Fin</b> sous la vidéo pendant la lecture,</li><li>choisissez le type d’exercice et enregistrez.</li></ol>Cliquez sur une annotation existante pour la modifier.</div>`;
+    return;
+  }
+  if (!ed) {
+    if (!SP.draft) SP.draft = { lane: sel.lane || 'hr', typeId: SP.lastType && S.types.has(SP.lastType) ? SP.lastType : (types[0] && types[0].id), note: '' };
+    Object.assign(SP.draft, { a: sel.a, b: sel.b, lane: sel.lane || SP.draft.lane });
+    if (!SP.draft.typeId || !S.types.has(SP.draft.typeId)) SP.draft.typeId = types[0] && types[0].id;
+  }
+  const cur = ed || SP.draft;
+  const st = rangeStats(cur.a, cur.b);
+  resolveNames([cur.createdBy]);
+  box.innerHTML = `<div class="hd"><span class="eyebrow">${ed ? 'Modifier l’annotation' : 'Nouvelle annotation'}</span><button class="btn sm ic" id="af-x" title="Fermer (Échap)">✕</button></div>
+    <div class="rg"><div><label class="l">Début</label><input class="f num" id="af-a" value="${fmtClock(cur.a, true)}"></div><div><label class="l">Fin</label><input class="f num" id="af-b" value="${fmtClock(cur.b, true)}"></div><div class="du">${fmtDur(cur.b - cur.a)}</div></div>
+    <div class="fld"><label class="l">Type d’exercice</label><select class="f" id="af-type">${types.map(t => `<option value="${t.id}" ${t.id === cur.typeId ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}<option value="__new">＋ Nouveau type…</option></select></div>
+    <label class="l">Outil annoté</label><div class="lsel">${Object.keys(LANES).map(k => `<button data-lane="${k}" class="${cur.lane === k ? 'on' : ''}"><i style="background:${LANES[k].hex}"></i>${LANES[k].label}</button>`).join('')}</div>
+    <div class="fld"><label class="l">Note</label><textarea class="f" id="af-note" rows="2" placeholder="Consignes, ressenti, observation…">${esc(cur.note || '')}</textarea></div>
+    <div class="astats"><div><div class="k">FC moy</div><div class="v">${fmtN(st.hrAvg)}</div></div><div><div class="k">FC max</div><div class="v">${fmtN(st.hrMax)}</div></div><div><div class="k">% FC max</div><div class="v">${fmtN(st.pct)}</div></div>
+      <div><div class="k">Intensité g</div><div class="v">${fmtN(st.acc, 2)}</div></div><div><div class="k">Charge</div><div class="v">${fmtN(st.load, 1)}</div></div><div><div class="k">Charge/min</div><div class="v">${fmtN(st.loadMin, 1)}</div></div></div>
+    ${ed && ed.createdBy ? `<div class="muted" style="font-size:11.5px;margin:-4px 0 12px">Ajoutée par ${esc(who(ed.createdBy))}${ed.updatedBy && ed.updatedBy !== ed.createdBy ? ', modifiée par ' + esc(who(ed.updatedBy)) : ''}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap" class="w-only"><button class="btn pri" id="af-save">${ed ? 'Enregistrer' : 'Ajouter l’annotation'}</button>${ed ? `<button class="btn danger" id="af-del">${ICON.trash}Supprimer</button><button class="btn" id="af-dup">Dupliquer</button>` : ''}</div>
+    ${!ed && (SP.data.hr || SP.data.acc) ? `<div class="cutbox w-only"><div class="eyebrow" style="margin-bottom:8px">Découper les données</div>
+      <div style="display:flex;gap:14px;margin-bottom:10px">${SP.data.hr ? `<label class="chk" style="margin:0"><input type="checkbox" id="cut-hr" ${cur.lane !== 'acc' ? 'checked' : ''}>Cardio</label>` : ''}${SP.data.acc ? `<label class="chk" style="margin:0"><input type="checkbox" id="cut-acc" ${cur.lane !== 'hr' ? 'checked' : ''}>Accéléro</label>` : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" id="cut-keep" title="Supprime tout ce qui est avant et après la plage">Garder seulement cette plage</button><button class="btn sm danger" id="cut-erase" title="Vide la plage (ex. capteur retiré, choc)">Effacer cette plage</button></div>
+      <div class="muted" style="font-size:11.5px;margin-top:8px">Les annotations ne bougent pas. Annulable avec « Annuler ».</div></div>` : ''}`;
+  const getCur = () => SP.edit || SP.draft;
+  const upd = () => { const c = getCur(); if (!c) return; const a = parseClock($('#af-a').value), b = parseClock($('#af-b').value); if (isFinite(a) && isFinite(b) && b > a) { c.a = a; c.b = b; if (SP.sel && !SP.edit) { SP.sel.a = a; SP.sel.b = b; } draw(); } };
+  $('#af-a').onchange = () => { upd(); renderAnnForm(true); }; $('#af-b').onchange = () => { upd(); renderAnnForm(true); };
+  $('#af-type').onchange = e => { if (e.target.value === '__new') { typeModal(id => { const c = getCur(); if (c) c.typeId = id; setTimeout(renderAnnForm, 300); }); e.target.value = getCur().typeId || ''; } else { getCur().typeId = e.target.value; } };
+  $('#af-note').oninput = e => { getCur().note = e.target.value; };
+  $$('[data-lane]', box).forEach(b => b.onclick = () => { const c = getCur(); c.lane = b.dataset.lane; if (SP.sel && !SP.edit) SP.sel.lane = c.lane; $$('[data-lane]', box).forEach(x => x.classList.toggle('on', x === b)); draw(); });
+  $('#af-x').onclick = () => { SP.sel = null; SP.edit = null; renderAnnForm(true); draw(); };
+  const sv = $('#af-save'); if (sv) sv.onclick = saveAnn;
+  const dl = $('#af-del'); if (dl) dl.onclick = async () => { const id = SP.edit.id; SP.edit = null; renderAnnForm(true); await softDelete('annotations/' + id, 'Annotation supprimée'); };
+  const ck = $('#cut-keep'), ce = $('#cut-erase');
+  const cutKinds = () => ['hr', 'acc'].filter(k => { const c = $('#cut-' + k); return c && c.checked; });
+  if (ck) ck.onclick = () => cutData(cutKinds(), getCur().a, getCur().b, 'keep');
+  if (ce) ce.onclick = () => cutData(cutKinds(), getCur().a, getCur().b, 'erase');
+  const du = $('#af-dup'); if (du) du.onclick = () => { const c = clone(SP.edit); const lane = c.lane === 'hr' ? 'acc' : c.lane === 'acc' ? 'video' : 'hr'; SP.edit = null; SP.sel = { a: c.a, b: c.b, lane }; SP.draft = { typeId: c.typeId, note: c.note, lane }; renderAnnForm(true); draw(); toast('Copie prête sur la ligne ' + LANES[lane].label + ' : changez l’outil si besoin puis enregistrez'); };
+}
+/* ---------- découpe des données (garder une plage / effacer une plage) ---------- */
+async function cutData(kinds, a, b, mode) {
+  const s = curSess(); if (!s || !kinds.length) { toast('Cochez Cardio et/ou Accéléro', { err: true }); return; }
+  const lbl = kinds.map(k => k === 'hr' ? 'cardio' : 'accéléro').join(' + ');
+  const ok = await confirmBox(mode === 'keep' ? 'Garder seulement cette plage ?' : 'Effacer cette plage ?',
+    (mode === 'keep' ? `Les données ${lbl} avant ${fmtClock(a)} et après ${fmtClock(b)} seront retirées.` : `Les données ${lbl} entre ${fmtClock(a)} et ${fmtClock(b)} seront vidées.`) + ' Vous pourrez revenir en arrière avec « Annuler ».', mode === 'keep' ? 'Couper' : 'Effacer', true);
+  if (!ok) return;
+  const id = s.id; const d = clone(s); delete d.id; const ops = []; const rev = uid();
+  const slice = (ser, off, dt) => { const n = ser.length; const i0 = Math.max(0, Math.floor((a - off) / dt)), i1 = Math.min(n, Math.ceil((b - off) / dt)); if (i1 <= i0) return null;
+    if (mode === 'keep') return { v: ser.slice(i0, i1), off: off + i0 * dt };
+    const v = Float64Array.from(ser); for (let i = i0; i < i1; i++) v[i] = NaN; return { v, off }; };
+  const chunkify = (arr, k, dec, oldN) => { const f = Math.pow(10, dec); const n = Math.ceil(arr.length / CH); for (let i = 0; i < n; i++) { const v = []; for (let j = i * CH; j < Math.min(arr.length, (i + 1) * CH); j++) v.push(isFinite(arr[j]) ? Math.round(arr[j] * f) / f : null); ops.push({ path: `series/${id}-${k}-${i}`, data: { sid: id, kind: k, i, rev, v } }); } for (let i = n; i < (oldN || 0); i++) ops.push({ path: `series/${id}-${k}-${i}`, data: null }); return n; };
+  const fin = v => Array.from(v).filter(Number.isFinite);
+  for (const k of kinds) {
+    const meta = d[k]; const ser = SP.data[k]; if (!meta || !ser) continue;
+    const off = meta.offset || 0; const r = slice(ser.v, off, ser.dt);
+    if (!r) { toast('La plage ne contient pas de données ' + (k === 'hr' ? 'cardio' : 'accéléro'), { err: true }); return; }
+    const vals = fin(r.v);
+    if (!vals.length) { toast('Il ne resterait aucune donnée : utilisez plutôt « Retirer » dans Données & synchronisation', { err: true }); return; }
+    if (k === 'hr') {
+      meta.chunks = chunkify(r.v, 'hr', 1, meta.chunks); meta.n = r.v.length;
+      meta.summary = { avg: vals.reduce((x, y) => x + y, 0) / vals.length, max: Math.max(...vals), min: Math.min(...vals) };
+    } else {
+      const pl = SP.data.pl ? slice(SP.data.pl.v, off, 1) : null;
+      meta.chunks = chunkify(r.v, 'acc', 3, meta.chunks); meta.n = r.v.length;
+      if (pl) { meta.plChunks = chunkify(pl.v, 'pl', 2, meta.plChunks); }
+      const load = pl ? fin(pl.v).reduce((x, y) => x + y, 0) : (meta.summary && meta.summary.load) || 0;
+      meta.dur = Math.round(r.v.length * ser.dt);
+      meta.summary = { mean: vals.reduce((x, y) => x + y, 0) / vals.length, peak: P.quantile(vals, 0.99), load, loadMin: meta.dur > 0 ? load / (meta.dur / 60) : null };
+    }
+    meta.offset = Math.round(r.off * 10) / 10; meta.rev = rev;
+    meta.cut = (meta.cut || []).concat([{ mode, a: Math.round(a * 10) / 10, b: Math.round(b * 10) / 10, at: Date.now(), by: S.meId }]);
+  }
+  d.duration = sessionDuration(d); d.updatedAt = Date.now();
+  ops.push({ path: 'sessions/' + id, data: d });
+  SP.sel = null; SP.draft = null; SP.hrR = null; SP.accR = null; SP.fitted = false; renderAnnForm(true);
+  try { await changeMany((mode === 'keep' ? 'Données coupées : ' : 'Plage effacée : ') + lbl, ops); } catch (e) { }
+}
+async function saveAnn() {
+  const s = curSess(); const ed = SP.edit; const c = ed || SP.draft; if (!c) return;
+  const a = parseClock($('#af-a').value), b = parseClock($('#af-b').value);
+  if (!(isFinite(a) && isFinite(b) && b > a)) { toast('Plage horaire invalide', { err: true }); return; }
+  if (!c.typeId || !S.types.has(c.typeId)) { toast('Choisissez ou créez un type d’exercice', { err: true }); return; }
+  const id = ed ? ed.id : uid();
+  const data = Object.assign({}, ed ? clone(SP.ann.get(id)) : { createdAt: Date.now(), createdBy: S.meId, deleted: false }, { sessionId: s.id, playerId: s.playerId, typeId: c.typeId, lane: c.lane, a: Math.round(a * 10) / 10, b: Math.round(b * 10) / 10, note: $('#af-note').value, updatedAt: Date.now(), updatedBy: S.meId });
+  delete data.id; SP.lastType = c.typeId;
+  SP.edit = null; SP.sel = null; SP.draft = null; renderAnnForm(true); draw();
+  try { await changeMany(ed ? 'Annotation modifiée' : `Annotation « ${typeOf(c.typeId).name} » ajoutée`, [{ path: 'annotations/' + id, data }]); } catch (e) { }
+}
+
+/* ---------- tableaux annotations + synthèse ---------- */
+function renderAnnTable() {
+  const box = $('#annTable'); if (!box || !SP) return;
+  const list = [...SP.ann.values()].filter(a => !a.deleted).sort((a, b) => a.a - b.a);
+  const filt = SP.laneFilter || 'all'; const shown = list.filter(a => filt === 'all' || a.lane === filt);
+  box.innerHTML = `<div class="sec-h"><h3 class="t">Annotations <span class="muted num">${list.length}</span></h3><div class="chips">${[['all', 'Tous les outils']].concat(Object.keys(LANES).map(k => [k, LANES[k].label])).map(([k, l]) => `<button class="chip ${filt === k ? 'on' : ''}" data-lf="${k}">${k !== 'all' ? `<i style="background:${LANES[k].hex}"></i>` : ''}${l}</button>`).join('')}</div></div>
+    ${shown.length ? `<div class="tbwrap"><table class="tb"><thead><tr><th>Exercice</th><th>Outil</th><th>Début</th><th>Fin</th><th class="r">Durée</th><th class="r">FC moy</th><th class="r">FC max</th><th class="r">%FCmax</th><th class="r">Int. g</th><th class="r">Charge</th><th>Note</th></tr></thead><tbody>
+      ${shown.map(a => { const t = typeOf(a.typeId); const st = rangeStats(a.a, a.b); return `<tr class="cl" data-ann="${a.id}" style="${SP.edit && SP.edit.id === a.id ? 'background:var(--soft)' : ''}"><td><span class="dot" style="background:${t.color}"></span><b>${esc(t.name)}</b></td><td><span style="color:${LANES[a.lane] ? LANES[a.lane].hex : '#888'};font-weight:600;font-size:12px">${LANES[a.lane] ? LANES[a.lane].label : '—'}</span></td><td class="num">${fmtClock(a.a)}</td><td class="num">${fmtClock(a.b)}</td><td class="r num">${fmtDur(a.b - a.a)}</td><td class="r num">${fmtN(st.hrAvg)}</td><td class="r num">${fmtN(st.hrMax)}</td><td class="r num">${fmtN(st.pct)}</td><td class="r num">${fmtN(st.acc, 2)}</td><td class="r num">${fmtN(st.load, 1)}</td><td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.note || '')}</td></tr>`; }).join('')}
+    </tbody></table></div>` : `<div class="colempty" style="padding:28px">Aucune annotation${filt !== 'all' ? ' pour cet outil' : ''}. Glissez sur un graphique pour en créer une.</div>`}`;
+  $$('[data-lf]', box).forEach(b => b.onclick = () => { SP.laneFilter = b.dataset.lf; renderAnnTable(); });
+  $$('[data-ann]', box).forEach(r => r.onclick = () => { const a = SP.ann.get(r.dataset.ann); if (!a) return; const pad = Math.max(5, (a.b - a.a) * 0.25); SP.v0 = a.a - pad; SP.v1 = a.b + pad; clampView(); setCursor(a.a, true); openEdit(a.id); window.scrollTo({ top: $('.charts').getBoundingClientRect().top + scrollY - 20, behavior: 'smooth' }); });
+  // synthèse par type
+  const ts = $('#typeSum'); const by = new Map();
+  for (const a of list) { const st = rangeStats(a.a, a.b); const g = by.get(a.typeId) || { n: 0, dur: 0, hrW: 0, hrD: 0, hrMax: -Infinity, accW: 0, accD: 0, load: 0, hasLoad: false }; g.n++; g.dur += a.b - a.a; if (st.hrAvg) { g.hrW += st.hrAvg * (a.b - a.a); g.hrD += a.b - a.a; g.hrMax = Math.max(g.hrMax, st.hrMax); } if (st.acc != null) { g.accW += st.acc * (a.b - a.a); g.accD += a.b - a.a; } if (st.load != null) { g.load += st.load; g.hasLoad = true; } by.set(a.typeId, g); }
+  const p = S.players.get((curSess() || {}).playerId) || {};
+  ts.innerHTML = `<div class="sec-h"><h3 class="t">Synthèse par type d’exercice</h3><span class="muted" style="font-size:12px">Toutes plages annotées confondues</span></div>${by.size ? `<div class="tbwrap"><table class="tb"><thead><tr><th>Exercice</th><th class="r">Plages</th><th class="r">Temps total</th><th class="r">FC moy</th><th class="r">FC max</th><th class="r">%FCmax</th><th class="r">Int. g</th><th class="r">Charge</th><th class="r">Charge/min</th></tr></thead><tbody>
+    ${[...by.entries()].sort((a, b) => b[1].dur - a[1].dur).map(([tid, g]) => { const t = typeOf(tid); const hr = g.hrD ? g.hrW / g.hrD : null; return `<tr><td><span class="dot" style="background:${t.color}"></span><b>${esc(t.name)}</b></td><td class="r num">${g.n}</td><td class="r num">${fmtDur(g.dur)}</td><td class="r num">${fmtN(hr)}</td><td class="r num">${isFinite(g.hrMax) ? fmtN(g.hrMax) : '—'}</td><td class="r num">${hr && p.fcMax ? fmtN(hr / p.fcMax * 100) : '—'}</td><td class="r num">${g.accD ? fmtN(g.accW / g.accD, 2) : '—'}</td><td class="r num">${g.hasLoad ? fmtN(g.load, 1) : '—'}</td><td class="r num">${g.hasLoad ? fmtN(g.load / (g.dur / 60), 1) : '—'}</td></tr>`; }).join('')}</tbody></table></div>` : '<div class="colempty" style="padding:22px">La synthèse apparaîtra après vos premières annotations.</div>'}`;
+}
+
+/* ---------- panneau données & synchro ---------- */
+function renderDataPanel() {
+  const box = $('#dataPanel'); const s = curSess(); if (!box || !s) return;
+  const q = pct => pct < 2 ? `<span class="qual">signal propre</span>` : pct < 10 ? `<span class="qual w">${fmtN(pct, 1)} % corrigés</span>` : `<span class="qual w">signal bruité · ${fmtN(pct, 0)} % corrigés</span>`;
+  const hr = s.hr, ac = s.acc, vd = s.video;
+  const canAuto = hr && ac && hr.absStart && ac.absStart;
+  box.innerHTML = `<div class="sec-h"><h3 class="t">Données & synchronisation</h3><span class="muted" style="font-size:12px">Décalage = moment de la séance (en s) où commence chaque enregistrement</span></div>
+    <div class="dgrid">
+      <div class="dcell"><div class="h"><i style="background:var(--hr)"></i>Cardiofréquencemètre</div>
+        <div class="st">${hr ? `<b>${esc(hr.file)}</b><br>${fmtDur(hr.n)} · 1 point/s · ${q(hr.stats.pctCorr || 0)}${hr.stats.gaps ? ` · ${fmtDur(hr.stats.gaps)} sans signal` : ''}` : 'Aucun fichier. Formats acceptés : CSV Polar, Garmin, Suunto, Firstbeat, intervalles RR…'}</div>
+        <div class="acts w-only"><label class="btn sm">${hr ? 'Remplacer' : 'Importer un CSV'}<input type="file" accept=".csv,.txt,.tsv,text/csv" hidden data-imp="hr"></label>${hr ? '<button class="btn sm danger" data-rm="hr">Retirer</button>' : ''}</div>
+        ${hr ? `<div class="offs">Décalage <input class="f" data-off="hr" value="${fmtN(hr.offset || 0, 1).replace(/\s/g, '')}"> s</div>` : ''}</div>
+      <div class="dcell"><div class="h"><i style="background:var(--acc)"></i>Accéléromètre</div>
+        <div class="st">${ac ? `<b>${esc(ac.file)}</b><br>${fmtDur(ac.dur)} · ${fmtN(ac.fsIn)} Hz → ${fmtN(1 / ac.dt)} Hz · filtre ${ac.stats.lp ? fmtN(ac.stats.lp) + ' Hz' : 'aucun'} · ${q(ac.stats.pctCorr || 0)}` : 'Aucun fichier. Colonnes X/Y/Z (g, m/s² ou mg) ou magnitude, avec temps.'}</div>
+        <div class="acts w-only"><label class="btn sm">${ac ? 'Remplacer' : 'Importer un CSV'}<input type="file" accept=".csv,.txt,.tsv,text/csv" hidden data-imp="acc"></label>${ac ? '<button class="btn sm danger" data-rm="acc">Retirer</button>' : ''}${canAuto ? '<button class="btn sm" id="autoSync">Caler sur l’horodatage</button>' : ''}</div>
+        ${ac ? `<div class="offs">Décalage <input class="f" data-off="acc" value="${fmtN(ac.offset || 0, 1).replace(/\s/g, '')}"> s</div>` : ''}</div>
+      <div class="dcell"><div class="h"><i style="background:var(--vid)"></i>Vidéo</div>
+        <div class="st">${vd ? `<b>${esc(vd.name)}</b><br>${vd.size ? fmtN(vd.size / 1073741824, 2) + ' Go · ' : ''}fichier ouvert depuis l’ordinateur de chacun, sans limite de taille` : 'Aucune vidéo. MP4 / MOV / WebM, sans limite de taille.'}</div>
+        <div class="acts w-only"><button class="btn sm" data-vidpick>${vd ? 'Changer de fichier' : 'Associer une vidéo'}</button>${vd ? '<button class="btn sm danger" data-rm="video">Retirer</button>' : ''}</div>
+        ${vd ? `<div class="offs">Décalage <input class="f" data-off="video" value="${fmtN(vd.offset || 0, 1).replace(/\s/g, '')}"> s</div>
+        <div class="offs" style="display:block"><div style="margin-bottom:5px">Lien de téléchargement pour les coachs (Drive, WeTransfer…)</div><input class="f" data-vlink placeholder="https://…" value="${esc(vd.link || '')}" style="width:100%;font-family:inherit" ${S.canWrite ? '' : 'disabled'}></div>` : ''}</div>
+    </div>`;
+  $$('[data-imp]', box).forEach(inp => inp.onchange = () => { const f = inp.files[0]; inp.value = ''; if (f) openImport(inp.dataset.imp, f); });
+  const vi = $('[data-vidpick]', box); if (vi) vi.onclick = () => addVideo();
+  const vl = $('[data-vlink]', box); if (vl) vl.onchange = () => setVideoLink(vl.value);
+  $$('[data-rm]', box).forEach(b => b.onclick = () => removeData(b.dataset.rm));
+  $$('[data-off]', box).forEach(inp => inp.onchange = () => { const v = parseClock(inp.value); if (!isFinite(v)) { inp.value = '0'; return; } setOffset(inp.dataset.off, v); });
+  const au = $('#autoSync', box); if (au) au.onclick = () => setOffset('acc', (s.hr.offset || 0) + (s.acc.absStart - s.hr.absStart) / 1000);
+}
+async function setOffset(k, v) {
+  const s = curSess(); if (!s || !s[k]) return; const d = clone(s); delete d.id; d[k].offset = Math.round(v * 10) / 10; d.duration = sessionDuration(d);
+  await changeMany(`Décalage ${k === 'hr' ? 'cardio' : k === 'acc' ? 'accéléro' : 'vidéo'} : ${fmtN(d[k].offset, 1)} s`, [{ path: 'sessions/' + s.id, data: d }]);
+}
+function sessionDuration(d) {
+  let a = 0, b = 0;
+  if (d.hr) { a = Math.min(a, d.hr.offset || 0); b = Math.max(b, (d.hr.offset || 0) + d.hr.n); }
+  if (d.acc) { a = Math.min(a, d.acc.offset || 0); b = Math.max(b, (d.acc.offset || 0) + d.acc.dur); }
+  if (!d.hr && !d.acc && d.video && d.video.duration) b = d.video.duration;
+  return Math.round(b - a);
+}
+async function removeData(k) {
+  const s = curSess(); if (!s || !s[k]) return;
+  const lbl = k === 'hr' ? 'les données cardio' : k === 'acc' ? 'les données accéléromètre' : 'la vidéo';
+  if (!(await confirmBox('Retirer ' + lbl + ' ?', 'Vous pourrez revenir en arrière avec « Annuler ».', 'Retirer', true))) return;
+  const d = clone(s); delete d.id; const ops = [];
+  if (k === 'hr' || k === 'acc') { for (let i = 0; i < (s[k].chunks || 0); i++) ops.push({ path: `series/${s.id}-${k}-${i}`, data: null }); if (k === 'acc') for (let i = 0; i < (s.acc.plChunks || 0); i++) ops.push({ path: `series/${s.id}-pl-${i}`, data: null }); }
+  d[k] = null; d.duration = sessionDuration(d); ops.push({ path: 'sessions/' + s.id, data: d });
+  if (k === 'video') { SP.videoUrl = null; SP.video = null; delete S.localVideos[s.id]; }
+  SP.hrR = null; SP.accR = null;
+  await changeMany(lbl.charAt(0).toUpperCase() + lbl.slice(1) + ' retirée' + (k === 'video' ? '' : 's'), ops);
+}
+
+/* ---------- import CSV ---------- */
+async function openImport(kind, file) {
+  const box = modal(`<div class="mh"><div class="eyebrow">Import ${kind === 'hr' ? 'cardiofréquencemètre' : 'accéléromètre'}</div><h2>${esc(file.name)}</h2></div><div id="impBody" class="mb"><div class="loading">Lecture et analyse du fichier…</div></div>`, { wide: true, sticky: true });
+  await tick();
+  let tab;
+  try { if (file.size > 300 * 1048576) throw new Error('Fichier trop volumineux (> 300 Mo).'); tab = P.parseTable(await file.text()); }
+  catch (e) { setTimeout(() => { const x = $('#impErrX'); if (x) x.onclick = closeModal; }); $('#impBody').innerHTML = `<div class="note w">Impossible de lire ce fichier : ${esc(e.message)}</div><div class="mf" style="border:0;padding:16px 0 0"><button class="btn" id="impErrX">Fermer</button></div>`; return; }
+  const g = P.guessColumns(tab, kind);
+  const st = { kind, file, tab, g, opts: kind === 'hr' ? { clean: true, smooth: 0, maxGap: 15, valType: 'auto', tUnit: 'auto' } : { unit: 'auto', lp: 15, out: 'auto', spikes: true, tUnit: 'auto', fsManual: 100 }, res: null, colCache: {} };
+  renderImport(box, st);
+}
+function numCol(st, k) { if (k < 0) return null; if (!st.colCache[k]) st.colCache[k] = Float64Array.from(st.tab.cols[k], P.toNum); return st.colCache[k]; }
+function runImport(st) {
+  const { tab, g, opts, kind } = st; const n = tab.rows;
+  let tinfo = null;
+  if (g.time >= 0) tinfo = P.parseTimeCol(tab.cols[g.time], kind, opts.tUnit);
+  let t;
+  if (tinfo) t = tinfo.t; else { const fs = kind === 'hr' ? 1 : (+opts.fsManual || 100); t = new Float64Array(n); for (let i = 0; i < n; i++) t[i] = i / fs; }
+  const abs = (tinfo && tinfo.abs) || tab.metaStart || null;
+  if (kind === 'hr') {
+    const v = numCol(st, g.hr); if (!v) throw new Error('Choisissez la colonne de fréquence cardiaque.');
+    const med = P.median(Array.from(v).filter(Number.isFinite).slice(0, 5000));
+    const isRR = opts.valType === 'rr' || (opts.valType === 'auto' && med > 250 && med < 2500);
+    const r = P.processHR(t, v, { clean: opts.clean, smooth: +opts.smooth, maxGap: +opts.maxGap, isRR, useTime: !!tinfo && !isRR });
+    if (!r) throw new Error('Aucune valeur exploitable dans cette colonne.');
+    r.isRR = isRR; r.abs = abs != null ? abs + r.t0 * 1000 : null; r.tinfo = tinfo; return r;
+  } else {
+    const X = g.mag >= 0 ? numCol(st, g.mag) : numCol(st, g.x), Y = g.mag >= 0 ? null : numCol(st, g.y), Z = g.mag >= 0 ? null : numCol(st, g.z);
+    if (!X || (g.mag < 0 && (!Y || !Z))) throw new Error('Choisissez les colonnes X, Y, Z (ou une colonne de magnitude).');
+    const r = P.processAcc(t, X, Y, Z, { unit: opts.unit, lp: +opts.lp, out: opts.out, spikes: opts.spikes, fs: tinfo ? null : (+opts.fsManual || 100) });
+    if (!r) throw new Error('Pas assez de valeurs exploitables.');
+    r.abs = abs; r.tinfo = tinfo; return r;
+  }
+}
+function renderImport(box, st) {
+  const { tab, g, opts, kind } = st;
+  const colOpts = (sel, none) => (none ? `<option value="-1" ${sel < 0 ? 'selected' : ''}>${none}</option>` : '') + tab.header.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(h)}  —  ex. ${esc((tab.cols[i].find(x => x) || '').slice(0, 18))}</option>`).join('');
+  const sel = (id, val, pairs) => `<select class="f" id="${id}">${pairs.map(([v, l]) => `<option value="${v}" ${String(val) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const left = kind === 'hr' ? `
+      <div class="fld"><label class="l">Colonne temps</label><select class="f" id="c-time">${colOpts(g.time, 'Aucune (1 valeur / seconde)')}</select></div>
+      <div class="fld"><label class="l">Unité du temps</label>${sel('o-tu', opts.tUnit, [['auto', 'Détection auto'], ['s', 'secondes'], ['ms', 'millisecondes'], ['us', 'microsecondes'], ['ns', 'nanosecondes']])}</div>
+      <div class="fld"><label class="l">Colonne fréquence cardiaque</label><select class="f" id="c-hr">${colOpts(g.hr)}</select></div>
+      <div class="fld"><label class="l">Type de valeur</label>${sel('o-vt', opts.valType, [['auto', 'Détection auto'], ['bpm', 'FC en bpm'], ['rr', 'Intervalles RR en ms']])}</div>
+      <div class="eyebrow" style="margin:18px 0 10px">Traitement du bruit</div>
+      <label class="chk"><input type="checkbox" id="o-clean" ${opts.clean ? 'checked' : ''}>Supprimer les artefacts (filtre de Hampel)</label>
+      <div class="row2"><div class="fld"><label class="l">Lissage</label>${sel('o-sm', opts.smooth, [[0, 'Aucun'], [3, '3 s'], [5, '5 s'], [10, '10 s']])}</div>
+      <div class="fld"><label class="l">Combler les trous ≤</label>${sel('o-gap', opts.maxGap, [[5, '5 s'], [15, '15 s'], [30, '30 s'], [60, '60 s']])}</div></div>`
+    : `
+      <div class="fld"><label class="l">Colonne temps</label><select class="f" id="c-time">${colOpts(g.time, 'Aucune (fréquence fixe)')}</select></div>
+      ${g.time < 0 ? `<div class="fld"><label class="l">Fréquence d’échantillonnage (Hz)</label><input class="f" id="o-fs" value="${esc(opts.fsManual)}"></div>` : `<div class="fld"><label class="l">Unité du temps</label>${sel('o-tu', opts.tUnit, [['auto', 'Détection auto'], ['s', 'secondes'], ['ms', 'millisecondes'], ['us', 'microsecondes'], ['ns', 'nanosecondes']])}</div>`}
+      <div class="row3"><div class="fld"><label class="l">X</label><select class="f" id="c-x">${colOpts(g.mag >= 0 ? -1 : g.x, '—')}</select></div><div class="fld"><label class="l">Y</label><select class="f" id="c-y">${colOpts(g.mag >= 0 ? -1 : g.y, '—')}</select></div><div class="fld"><label class="l">Z</label><select class="f" id="c-z">${colOpts(g.mag >= 0 ? -1 : g.z, '—')}</select></div></div>
+      <div class="fld"><label class="l">… ou une seule colonne magnitude</label><select class="f" id="c-mag">${colOpts(g.mag, 'Non (X/Y/Z)')}</select></div>
+      <div class="fld"><label class="l">Unité</label>${sel('o-unit', opts.unit, [['auto', 'Détection auto'], ['g', 'g'], ['ms2', 'm/s²'], ['mg', 'mg']])}</div>
+      <div class="eyebrow" style="margin:18px 0 10px">Traitement du bruit</div>
+      <label class="chk"><input type="checkbox" id="o-sp" ${opts.spikes ? 'checked' : ''}>Supprimer les pics isolés (médiane glissante)</label>
+      <div class="row2"><div class="fld"><label class="l">Filtre passe-bas</label>${sel('o-lp', opts.lp, [[0, 'Aucun'], [5, '5 Hz'], [10, '10 Hz'], [15, '15 Hz'], [20, '20 Hz']])}</div>
+      <div class="fld"><label class="l">Résolution affichée</label>${sel('o-out', opts.out, [['auto', 'Auto'], [2, '2 Hz'], [5, '5 Hz'], [10, '10 Hz'], [25, '25 Hz']])}</div></div>`;
+  $('#impBody').innerHTML = `<div class="impgrid"><div>${left}</div><div>
+      <div class="eyebrow" style="margin-bottom:8px">Aperçu · <span style="color:#9aa0a8">brut</span> / <span style="color:${kind === 'hr' ? 'var(--hr)' : 'var(--acc)'}">traité</span></div>
+      <canvas id="impCv"></canvas><div id="impStats"></div><div id="impMeta" style="margin-top:12px"></div></div></div>
+    <div class="mf" style="padding:16px 0 0;margin-top:16px"><button class="btn" id="impX">Annuler</button><button class="btn pri" id="impOk" disabled>Enregistrer dans la séance</button></div><div class="prog" id="impProg" style="display:none"><span></span></div>`;
+  const bindSel = (id, fn) => { const el = $('#' + id); if (el) el.onchange = () => { fn(el); compute(); }; };
+  bindSel('c-time', el => { const v = +el.value; const was = g.time; g.time = v; if ((was < 0) !== (v < 0) && kind === 'acc') { renderImport(box, st); } });
+  bindSel('o-tu', el => opts.tUnit = el.value);
+  if (kind === 'hr') { bindSel('c-hr', el => g.hr = +el.value); bindSel('o-vt', el => opts.valType = el.value); bindSel('o-clean', el => opts.clean = el.checked); bindSel('o-sm', el => opts.smooth = +el.value); bindSel('o-gap', el => opts.maxGap = +el.value); }
+  else { bindSel('c-x', el => { g.x = +el.value; g.mag = -1; $('#c-mag').value = '-1'; }); bindSel('c-y', el => { g.y = +el.value; g.mag = -1; $('#c-mag').value = '-1'; }); bindSel('c-z', el => { g.z = +el.value; g.mag = -1; $('#c-mag').value = '-1'; }); bindSel('c-mag', el => g.mag = +el.value); bindSel('o-unit', el => opts.unit = el.value); bindSel('o-sp', el => opts.spikes = el.checked); bindSel('o-lp', el => opts.lp = +el.value); bindSel('o-out', el => opts.out = el.value); const fsI = $('#o-fs'); if (fsI) fsI.onchange = () => { opts.fsManual = +fsI.value || 100; compute(); }; }
+  $('#impX').onclick = closeModal;
+  $('#impOk').onclick = () => saveImport(st);
+  const compute = async () => {
+    $('#impOk').disabled = true; $('#impStats').innerHTML = '<div class="muted" style="font-size:12px;margin-top:10px">Traitement…</div>'; await tick();
+    try { st.res = runImport(st); } catch (e) { st.res = null; $('#impStats').innerHTML = `<div class="note w" style="margin-top:12px">${esc(e.message)}</div>`; const cv = $('#impCv'); fit(cv); return; }
+    previewImport(st); $('#impOk').disabled = !S.canWrite;
+  };
+  compute();
+}
+function previewImport(st) {
+  const r = st.res; const cv = $('#impCv'); cv.setAttribute('height', 190); const ctx = fit(cv); const w = cv._w, h = cv._h;
+  const draw1 = (arr, dt, color, lw, ymin, ymax) => { ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); let pen = false; const n = arr.length; const step = Math.max(1, Math.floor(n / (w * 2))); const dur = n * dt;
+    for (let i = 0; i < n; i += step) { let v = arr[i]; if (step > 1) { let mx = -Infinity; for (let j = i; j < Math.min(n, i + step); j++) if (isFinite(arr[j]) && arr[j] > mx) mx = arr[j]; v = isFinite(mx) ? mx : NaN; } if (!isFinite(v)) { pen = false; continue; } const x = 8 + (i * dt) / dur * (w - 16), y = h - 10 - (Math.min(ymax, Math.max(ymin, v)) - ymin) / (ymax - ymin) * (h - 20); if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; } } ctx.stroke(); };
+  let statsHtml = '';
+  if (st.kind === 'hr') {
+    const a = P.quantile(Array.from(r.v), 0.002) - 8, b = P.quantile(Array.from(r.v), 0.998) + 8;
+    draw1(r.raw, 1, '#c3c6cc', 1, a, b); draw1(r.v, 1, '#d64527', 1.4, a, b);
+    statsHtml = `<div class="ist"><div><b>${fmtDur(r.dur)}</b>durée</div><div><b>${fmtN(r.summary.avg)} / ${fmtN(r.summary.max)}</b>FC moy / max</div><div><b>${fmtN(r.stats.pctCorr, 1)} %</b>points corrigés</div>
+      <div><b>${fmtN(r.stats.outliers + r.stats.rangeOut)}</b>artefacts retirés</div><div><b>${fmtDur(r.stats.interp)}</b>trous comblés</div><div><b>${fmtN(r.stats.cover, 0)} %</b>couverture</div></div>`;
+    if (r.isRR) statsHtml += `<div class="note" style="margin-top:10px">Intervalles RR détectés : convertis en FC (60 000 / RR).</div>`;
+    if (r.stats.gaps > 60) statsHtml += `<div class="note w" style="margin-top:10px">${fmtDur(r.stats.gaps)} sans signal (ceinture déconnectée ?) : ces passages restent vides.</div>`;
+  } else {
+    const b = Math.max(0.2, P.quantile(Array.from(r.v), 0.998) * 1.2);
+    draw1(r.v, r.dt, '#2458c8', 1.1, 0, b);
+    statsHtml = `<div class="ist"><div><b>${fmtN(r.fs, r.fs < 20 ? 1 : 0)} Hz</b>échantillonnage</div><div><b>${fmtDur(r.dur)}</b>durée</div><div><b>${r.unitDet === 'ms2' ? 'm/s²' : r.unitDet}</b>unité détectée</div>
+      <div><b>${fmtN(r.summary.mean, 2)} g</b>intensité moy.</div><div><b>${fmtN(r.summary.load)}</b>charge (u.a.)</div><div><b>${fmtN(r.stats.spikes)}</b>pics supprimés</div></div>`;
+    if (r.unitDet === 'brut') statsHtml += `<div class="note w" style="margin-top:10px">Unité non reconnue : valeurs normalisées sur la gravité (1 g au repos). Choisissez l’unité si vous la connaissez.</div>`;
+    if (r.stats.gapsSec > 5) statsHtml += `<div class="note w" style="margin-top:10px">${fmtDur(r.stats.gapsSec)} de coupures détectées dans l’enregistrement.</div>`;
+    statsHtml += `<div class="note" style="margin-top:10px">Traitement : ${r.stats.lp ? `filtre Butterworth passe-bas ${fmtN(r.stats.lp, 0)} Hz (aller-retour, sans déphasage), ` : ''}retrait de la gravité (passe-bas 0,3 Hz), intensité = norme de l’accélération dynamique, charge = PlayerLoad.</div>`;
+  }
+  $('#impStats').innerHTML = statsHtml;
+  const s = curSess(); const other = st.kind === 'hr' ? s.acc : s.hr;
+  $('#impMeta').innerHTML = r.abs ? `<div class="note">Début de l’enregistrement : <b>${new Date(r.abs).toLocaleString('fr-FR')}</b>${other && other.absStart ? ' — synchronisation automatique avec l’autre capteur.' : ''}</div>` : (st.tab.meta ? '' : '');
+}
+async function saveImport(st) {
+  const s = curSess(); const r = st.res; if (!s || !r) return;
+  $('#impOk').disabled = true; $('#impX').disabled = true; const pg = $('#impProg'); pg.style.display = 'block';
+  const id = s.id, kind = st.kind, rev = uid(); const d = clone(s); delete d.id;
+  const ops = []; const old = s[kind];
+  const chunkify = (arr, k, dec, oldN) => { const f = Math.pow(10, dec); const n = Math.ceil(arr.length / CH); for (let i = 0; i < n; i++) { const v = []; for (let j = i * CH; j < Math.min(arr.length, (i + 1) * CH); j++) v.push(isFinite(arr[j]) ? Math.round(arr[j] * f) / f : null); ops.push({ path: `series/${id}-${k}-${i}`, data: { sid: id, kind: k, i, rev, v } }); } for (let i = n; i < (oldN || 0); i++) ops.push({ path: `series/${id}-${k}-${i}`, data: null }); return n; };
+  let offset = old ? old.offset || 0 : 0;
+  const otherK = kind === 'hr' ? 'acc' : 'hr'; const other = s[otherK];
+  if (r.abs && other && other.absStart) offset = (other.offset || 0) + (r.abs - other.absStart) / 1000;
+  if (kind === 'hr') {
+    const n = chunkify(r.v, 'hr', 1, old && old.chunks);
+    d.hr = { file: st.file.name, rev, dt: 1, n: r.v.length, chunks: n, offset: Math.round(offset * 10) / 10, absStart: r.abs || null, isRR: !!r.isRR, stats: r.stats, summary: r.summary, importedAt: Date.now(), importedBy: S.meId };
+  } else {
+    const n = chunkify(r.v, 'acc', 3, old && old.chunks); const npl = chunkify(r.pl, 'pl', 2, old && old.plChunks);
+    d.acc = { file: st.file.name, rev, dt: r.dt, n: r.v.length, chunks: n, plChunks: npl, dur: Math.round(r.dur), fsIn: Math.round(r.fs * 10) / 10, unit: r.unitDet, offset: Math.round(offset * 10) / 10, absStart: r.abs || null, stats: { n: r.stats.n, spikes: r.stats.spikes, lp: r.stats.lp, gapsSec: Math.round(r.stats.gapsSec), pctCorr: r.stats.pctCorr }, summary: { mean: r.summary.mean, peak: r.summary.peak, load: r.summary.load, loadMin: r.summary.loadMin }, importedAt: Date.now(), importedBy: S.meId };
+  }
+  d.duration = sessionDuration(d); d.updatedAt = Date.now();
+  ops.push({ path: 'sessions/' + id, data: d });
+  try {
+    await changeMany(`Import ${kind === 'hr' ? 'cardio' : 'accéléro'} : ${st.file.name}`, ops, { onProg: p => pg.firstChild.style.width = (p * 100) + '%' });
+    if (kind === 'hr') SP.hrR = null; else SP.accR = null; SP.fitted = false;
+    closeModal();
+  } catch (e) { $('#impOk').disabled = false; $('#impX').disabled = false; }
+}
+
+/* ---------- vidéo ---------- */
+/* ---------- vidéo (fichier local, sans limite de taille) ---------- */
+const VH = { // mémorise l'accès aux fichiers vidéo (Chrome / Edge) pour ne pas les re-chercher
+  _db: null,
+  open() { if (this._db) return this._db; this._db = new Promise((res, rej) => { const r = indexedDB.open('labperf-videos', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); return this._db; },
+  async get(k) { try { const d = await this.open(); return await new Promise(res => { const q = d.transaction('h').objectStore('h').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (e) { return null; } },
+  async set(k, v) { try { const d = await this.open(); d.transaction('h', 'readwrite').objectStore('h').put(v, k); } catch (e) { } }
+};
+async function pickVideoFile() {
+  if (window.showOpenFilePicker) {
+    try { const [h] = await window.showOpenFilePicker({ types: [{ description: 'Vidéo', accept: { 'video/*': ['.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi'] } }] }); return { file: await h.getFile(), handle: h }; }
+    catch (e) { if (e && e.name === 'AbortError') return null; }
+  }
+  return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'video/*'; i.onchange = () => res(i.files[0] ? { file: i.files[0] } : null); i.click(); });
+}
+function sameVideo(v, file) { return file && v && file.name === v.name && (!v.size || file.size === v.size); }
+function renderVideoCard() {
+  const box = $('#vcard'); const s = curSess(); if (!box || !s) return;
+  const v = s.video; const key = v ? v.name + '|' + v.size + '|' + (v.link || '') : '';
+  if (SP.vKey === key && box.childElementCount) { const off = $('#vOff'); if (off) off.textContent = fmtN(v.offset || 0, 1); return; }
+  SP.vKey = key; SP.video = null; SP.videoUrl = null;
+  if (!v) {
+    box.innerHTML = `<div class="vwrap"><div class="vdrop"><b>Ajouter la vidéo</b>de la séance pour la synchroniser avec les capteurs<br><button class="btn sm w-only" id="vPick" style="margin-top:12px;background:#fff;color:#121820">Choisir un fichier</button></div></div><div class="vbar"><span class="muted" style="font-size:12px">MP4, MOV, WebM · aucune limite de taille</span></div>`;
+    const b = $('#vPick'); if (b) b.onclick = () => addVideo();
+    return;
+  }
+  box.innerHTML = `<div class="vwrap" id="vw"><div class="vdrop">Ouverture de la vidéo…</div></div>
+    <div class="vbar"><button class="btn sm w-only" id="vA" title="Début d’exercice au temps actuel de la vidéo">⟦ Début</button><button class="btn sm w-only" id="vB" title="Fin d’exercice au temps actuel de la vidéo">Fin ⟧</button><button class="btn sm w-only" id="vSync" title="Le moment actuel de la vidéo correspond au curseur des graphiques">⇄ Caler sur le curseur</button><span class="vt" id="vt"></span></div>
+    <div style="padding:0 12px 12px;font-size:11.5px;color:var(--muted)">Décalage vidéo : <b class="num" id="vOff">${fmtN(v.offset || 0, 1)}</b> s · Pour synchroniser : placez le curseur sur un événement visible dans les données (ex. premier sprint), mettez la vidéo sur le même instant, puis « Caler ».</div>`;
+  loadVideo(v);
+}
+async function loadVideo(v) {
+  const id = SP.id; const wrap = () => $('#vw');
+  let url = S.localVideos[id] || null; let handle = null;
+  if (!url) {
+    handle = await VH.get(id);
+    if (handle && handle.queryPermission) { try { if ((await handle.queryPermission({ mode: 'read' })) === 'granted') { const f = await handle.getFile(); if (sameVideo(v, f)) { url = URL.createObjectURL(f); S.localVideos[id] = url; } } } catch (e) { } }
+  }
+  if (!SP || SP.id !== id) return;
+  const w = wrap(); if (!w) return;
+  if (!url) {
+    const link = v.link && /^https?:\/\//i.test(v.link) ? v.link : '';
+    w.innerHTML = `<div class="vdrop"><b>${handle ? 'Rouvrir la vidéo' : 'Vidéo à ouvrir'}</b>« ${esc(v.name)} »${v.size ? ` · ${fmtN(v.size / 1073741824, 2)} Go` : ''}<br>${handle ? 'Cliquez pour autoriser la lecture du fichier sur cet ordinateur.' : 'Ouvrez ce fichier depuis cet ordinateur (disque, clé USB…).'}
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px">${handle ? `<button class="btn sm" id="vReH" style="background:#fff;color:#121820">Rouvrir</button>` : ''}<button class="btn sm" id="vRe" style="background:${handle ? 'transparent;color:#fff;border-color:#4a5563' : '#fff;color:#121820'}">${handle ? 'Choisir un autre fichier' : 'Ouvrir le fichier'}</button>${link ? `<a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener" style="background:transparent;color:#fff;border-color:#4a5563">Télécharger la vidéo ↗</a>` : ''}</div></div>`;
+    const use = (f, h) => { if (!sameVideo(v, f)) toast(`Attention : ce fichier (${f.name}) ne correspond pas à la vidéo de la séance (${v.name}). Le calage risque d’être faux.`, { err: true }); S.localVideos[id] = URL.createObjectURL(f); if (h) VH.set(id, h); SP.vKey = null; renderVideoCard(); };
+    $('#vRe').onclick = async () => { const r = await pickVideoFile(); if (r) use(r.file, r.handle); };
+    const rh = $('#vReH'); if (rh) rh.onclick = async () => { try { if ((await handle.requestPermission({ mode: 'read' })) === 'granted') use(await handle.getFile(), handle); } catch (e) { toast('Fichier introuvable : il a peut-être été déplacé. Choisissez-le à nouveau.', { err: true }); } };
+    return;
+  }
+  SP.videoUrl = url;
+  w.innerHTML = `<video controls playsinline preload="metadata" src="${esc(url)}"></video>`;
+  const vid = w.querySelector('video'); SP.video = vid;
+  vid.onloadedmetadata = () => { computeBounds(); draw(); const s = curSess(); if (s && s.video && !s.video.duration && isFinite(vid.duration) && S.canWrite) { const d = clone(s); delete d.id; d.video.duration = Math.round(vid.duration); if (!d.hr && !d.acc) d.duration = d.video.duration; applyOps([['sessions/' + s.id, d]]).catch(() => { }); } };
+  vid.onerror = () => { const ww = wrap(); if (ww) ww.innerHTML = `<div class="vdrop"><b>Lecture impossible</b>Ce format n’est pas lisible par votre navigateur. Convertissez la vidéo en MP4 (H.264), par exemple avec HandBrake (gratuit).<br><button class="btn sm" id="vRe2" style="margin-top:12px;background:#fff;color:#121820">Choisir un autre fichier</button></div>`; const b = $('#vRe2'); if (b) b.onclick = async () => { const r = await pickVideoFile(); if (r) { S.localVideos[id] = URL.createObjectURL(r.file); if (r.handle) VH.set(id, r.handle); SP.vKey = null; renderVideoCard(); } }; };
+  const loop = () => { if (!SP || SP.video !== vid) return; if (!vid.paused) { SP.cursor = offsets().video + vid.currentTime; const span = SP.v1 - SP.v0; if (SP.cursor > SP.v1 - span * 0.05 || SP.cursor < SP.v0) { SP.v0 = SP.cursor - span * 0.2; SP.v1 = SP.v0 + span; clampView(); } draw(); } SP.raf = requestAnimationFrame(loop); };
+  vid.onplay = () => { cancelAnimationFrame(SP.raf); loop(); };
+  vid.onseeked = () => { if (vid.paused) { SP.cursor = offsets().video + vid.currentTime; draw(); } };
+  $('#vA').onclick = () => { const t = offsets().video + vid.currentTime; SP.edit = null; SP.sel = { a: t, b: Math.max(t + 5, SP.sel && SP.sel.b > t ? SP.sel.b : t + 30), lane: 'video' }; SP.draft = null; renderAnnForm(true); draw(); toast('Début marqué à ' + fmtClock(t) + ' — lancez la vidéo puis « Fin »'); };
+  $('#vB').onclick = () => { const t = offsets().video + vid.currentTime; const a = SP.edit ? SP.edit.a : SP.sel ? SP.sel.a : t - 30; if (t <= a) { toast('La fin doit être après le début', { err: true }); return; } if (SP.edit) SP.edit.b = t; else { SP.sel = { a, b: t, lane: (SP.sel && SP.sel.lane) || 'video' }; SP.draft = null; } renderAnnForm(true); draw(); };
+  $('#vSync').onclick = () => setOffset('video', SP.cursor - vid.currentTime);
+}
+async function addVideo() {
+  const s = curSess(); if (!s) return; const id = s.id;
+  const r = await pickVideoFile(); if (!r) return;
+  const file = r.file;
+  S.localVideos[id] = URL.createObjectURL(file); if (r.handle) VH.set(id, r.handle);
+  const d = clone(S.sessions.get(id)); delete d.id;
+  d.video = { name: file.name, size: file.size, type: file.type || 'video/mp4', mode: 'local', offset: d.video ? d.video.offset || 0 : 0, link: d.video ? d.video.link || '' : '', duration: null, addedAt: Date.now(), addedBy: S.meId };
+  SP.vKey = null;
+  try { await changeMany('Vidéo associée : ' + file.name, [{ path: 'sessions/' + id, data: d }]); } catch (e) { }
+}
+async function setVideoLink(val) {
+  const s = curSess(); if (!s || !s.video) return; val = String(val || '').trim();
+  if (val && !/^https?:\/\//i.test(val)) { toast('Le lien doit commencer par https://', { err: true }); renderDataPanel(); return; }
+  await patch(val ? 'Lien de la vidéo enregistré' : 'Lien de la vidéo retiré', 'sessions/' + s.id, { video: Object.assign(clone(s.video), { link: val }) });
+}
+
+/* =====================================================================
+   COMPTES & BASE DE DONNÉES (Supabase)
+   La couche ci-dessous expose la même interface que l'application attend
+   (doc / collection / onSnapshot), stockée dans la table « docs ».
+   ===================================================================== */
+const CFG = window.APP_CONFIG || {};
+const A = { sb: null, session: null, profile: null, listeners: new Set() };
+const ROLES = { pending: 'En attente', viewer: 'Lecteur', coach: 'Coach', admin: 'Administrateur' };
+
+function pgErr(e) {
+  if (!e) return null; const m = e.message || String(e);
+  let code = 'unavailable';
+  if (e.code === '42501' || /row-level security|permission denied/i.test(m)) code = 'invalid_argument';
+  else if (/JWT|token/i.test(m)) code = 'revoked';
+  else if (/too large|payload/i.test(m)) code = 'invalid_argument';
+  else if (e.code === '53100' || /quota|disk|read-only/i.test(m)) code = 'quota_exceeded';
+  return { code, message: m };
+}
+function makeDb() {
+  const sb = A.sb;
+  const snapDoc = (path, data) => ({ id: path.split('/').pop(), exists: data != null, data: () => data == null ? undefined : data, metadata: { fromCache: false, hasPendingWrites: false } });
+  const matches = (data, filters) => filters.every(([f, op, v]) => op === '==' ? data && data[f] === v : true);
+  const localEmit = (path, data) => { const col = path.split('/')[0]; A.listeners.forEach(l => { if (l.col === col) l.local(path, data); }); };
+  const docRef = path => ({
+    id: path.split('/').pop(), path,
+    async get() { const { data, error } = await sb.from('docs').select('data').eq('path', path).maybeSingle(); if (error) throw pgErr(error); return snapDoc(path, data ? data.data : null); },
+    async set(d) { const { error } = await sb.from('docs').upsert({ path, col: path.split('/')[0], data: d, updated_by: A.session.user.id }); if (error) throw pgErr(error); localEmit(path, d); },
+    async update(d) { const cur = await this.get(); if (!cur.exists) throw { code: 'invalid_argument', message: 'Document absent' }; await this.set(Object.assign(cur.data(), d)); },
+    async delete() { const { error } = await sb.from('docs').delete().eq('path', path); if (error) throw pgErr(error); localEmit(path, null); },
+    onSnapshot(next, err) { let dead = false; const go = () => this.get().then(s => { if (!dead) next(s); }, e => err && err(e)); go(); const iv = setInterval(go, 30000); return () => { dead = true; clearInterval(iv); }; },
+    collection(sub) { return query(path + '/' + sub); }
+  });
+  const query = (col, filters = [], lim = 0) => {
+    const run = async () => {
+      const out = []; const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        let q = sb.from('docs').select('path,data').eq('col', col).order('path');
+        for (const [f, op, v] of filters) if (op === '==') q = q.eq('data->>' + f, String(v));
+        const to = lim ? Math.min(lim, from + PAGE) - 1 : from + PAGE - 1;
+        const { data, error } = await q.range(from, to); if (error) throw pgErr(error);
+        out.push(...data); if (data.length < PAGE || (lim && out.length >= lim)) break;
+      }
+      return out;
+    };
+    const toSnap = rows => { const docs = rows.map(r => snapDoc(r.path, r.data)); return { docs, size: docs.length, empty: !docs.length, docChanges: () => [], metadata: { fromCache: false, hasPendingWrites: false } }; };
+    return {
+      path: col,
+      where: (f, op, v) => query(col, [...filters, [f, op, v]], lim),
+      limit: n => query(col, filters, n),
+      orderBy: () => query(col, filters, lim),
+      doc: id => docRef(col + '/' + (id || uid())),
+      add: async d => { const r = docRef(col + '/' + uid()); await r.set(d); return r; },
+      get: async () => toSnap(await run()),
+      onSnapshot(next, err) {
+        let dead = false, t = null, rows = new Map(), fails = 0;
+        const emit = () => { if (!dead) next(toSnap([...rows.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([path, data]) => ({ path, data })))); };
+        const refresh = async () => {
+          try { const r = await run(); fails = 0; rows = new Map(r.map(x => [x.path, x.data])); emit(); }
+          catch (e) { if (dead) return; if (e.code === 'revoked' || e.code === 'invalid_argument') { err && err(e); return; } fails++; setTimeout(refresh, Math.min(30000, 2000 * fails)); }
+        };
+        const soon = () => { clearTimeout(t); t = setTimeout(refresh, 300); };
+        const L = { col, local: (path, data) => { if (dead) return; if (data && matches(data, filters)) rows.set(path, data); else rows.delete(path); emit(); } };
+        A.listeners.add(L);
+        const ch = sb.channel('c-' + col + '-' + uid())
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'docs', filter: 'col=eq.' + col }, soon)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'docs', filter: 'col=eq.' + col }, soon)
+          .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'docs' }, p => { if (p.old && String(p.old.path || '').startsWith(col + '/')) soon(); })
+          .subscribe(st => { if (st === 'SUBSCRIBED') soon(); });
+        refresh();
+        const iv = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 60000);
+        return () => { dead = true; clearTimeout(t); clearInterval(iv); A.listeners.delete(L); try { sb.removeChannel(ch); } catch (e) { } };
+      }
+    };
+  };
+  return { doc: docRef, collection: c => query(c) };
+}
+function makeUser() {
+  const role = () => (A.profile && A.profile.role) || 'pending';
+  return {
+    id: async () => A.session.user.id,
+    me: async () => ({ id: A.session.user.id, name: (A.profile && A.profile.name) || '' }),
+    isOwner: () => role() === 'admin',
+    canEdit: () => role() === 'admin',
+    can: async n => n === 'data.write' ? ['coach', 'admin'].includes(role()) : null,
+    profiles: async ids => { const { data } = await A.sb.from('profiles').select('id,name').in('id', ids); const o = {}; (data || []).forEach(p => o[p.id] = { id: p.id, name: p.name }); return o; }
+  };
+}
+
+/* ---------- écrans de connexion ---------- */
+function authShell(inner) {
+  document.body.classList.add('authmode');
+  $('#auth').innerHTML = `<div class="au-side"><div class="brand"><div class="mk"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></div><div><b>Lab Perf</b><small>Suivi des séances</small></div></div>
+    <div class="au-pitch"><h1>Cardio, accéléromètre et vidéo,<br>réunis par séance.</h1><p>Profils joueurs, séances classées en match, entraînement et préparation physique, annotations partagées entre coachs.</p>
+    <div class="au-tags"><span style="--c:var(--match)">Match</span><span style="--c:var(--ent)">Entraînement</span><span style="--c:var(--prepa)">Préparation physique</span></div></div></div>
+    <div class="au-main"><div class="au-card">${inner}</div></div>`;
+}
+function hideAuth() { document.body.classList.remove('authmode'); $('#auth').innerHTML = ''; }
+function authMsg(t, err) { const m = $('#auMsg'); if (m) { m.textContent = t; m.className = 'au-msg' + (err ? ' err' : ''); } }
+function frErr(e) {
+  const m = (e && e.message) || '';
+  if (/Invalid login/i.test(m)) return 'E-mail ou mot de passe incorrect.';
+  if (/already registered|already exists/i.test(m)) return 'Un compte existe déjà avec cet e-mail : connectez-vous.';
+  if (/at least 6|password should/i.test(m)) return 'Le mot de passe doit contenir au moins 6 caractères.';
+  if (/Email not confirmed/i.test(m)) return 'E-mail non confirmé. Demandez à l’administrateur de désactiver la confirmation par e-mail (voir le guide).';
+  if (/valid email|invalid.*email/i.test(m)) return 'Adresse e-mail invalide.';
+  if (/fetch|network/i.test(m)) return 'Connexion impossible au serveur. Vérifiez internet, ou le projet Supabase est peut-être en veille (voir le guide).';
+  return m || 'Erreur inattendue.';
+}
+function showAuth(mode) {
+  if (mode === 'config') { authShell(`<h2>Configuration à terminer</h2><p class="au-p">Le fichier <b>config.js</b> ne contient pas encore l’adresse et la clé du projet Supabase. Suivez le guide d’installation (README).</p>`); return; }
+  if (mode === 'pending') {
+    authShell(`<div class="eyebrow">Compte créé</div><h2>En attente de validation</h2><p class="au-p">Bonjour ${esc((A.profile && A.profile.name) || '')}. Un administrateur doit valider votre accès. Cette page s’ouvrira automatiquement dès que ce sera fait.</p><button class="btn" id="auOut">Se déconnecter</button>`);
+    $('#auOut').onclick = () => A.sb.auth.signOut();
+    const iv = setInterval(async () => { const p = await fetchProfile(); if (p && p.role !== 'pending') { clearInterval(iv); location.reload(); } }, 8000);
+    return;
+  }
+  const signup = mode === 'signup';
+  authShell(`<div class="eyebrow">${signup ? 'Nouveau coach' : 'Bienvenue'}</div><h2>${signup ? 'Créer un compte' : 'Connexion'}</h2>
+    <form id="auF">${signup ? `<div class="fld"><label class="l">Prénom et nom</label><input class="f" name="name" required autocomplete="name"></div>` : ''}
+    <div class="fld"><label class="l">E-mail</label><input class="f" type="email" name="email" required autocomplete="email"></div>
+    <div class="fld"><label class="l">Mot de passe</label><input class="f" type="password" name="pw" required minlength="6" autocomplete="${signup ? 'new-password' : 'current-password'}"></div>
+    <div id="auMsg" class="au-msg"></div>
+    <button class="btn pri" style="width:100%;justify-content:center;padding:11px" id="auGo">${signup ? 'Créer mon compte' : 'Se connecter'}</button></form>
+    <p class="au-p" style="margin-top:18px;text-align:center">${signup ? 'Déjà un compte ? <button class="link" id="auSw">Se connecter</button>' : 'Pas encore de compte ? <button class="link" id="auSw">Créer un compte</button>'}</p>
+    ${signup ? '<p class="au-p au-s">Après la création, un administrateur valide votre accès.</p>' : '<p class="au-p au-s">Mot de passe oublié ? Demandez à l’administrateur de le réinitialiser.</p>'}`);
+  $('#auSw').onclick = () => showAuth(signup ? 'login' : 'signup');
+  $('#auF').onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target); const btn = $('#auGo'); btn.disabled = true; authMsg('');
+    const email = String(f.get('email')).trim(), password = String(f.get('pw'));
+    try {
+      if (signup) {
+        const { data, error } = await A.sb.auth.signUp({ email, password, options: { data: { name: String(f.get('name')).trim() } } });
+        if (error) throw error;
+        if (!data.session) { authMsg('Compte créé. Confirmez votre adresse via l’e-mail reçu, puis connectez-vous.'); btn.disabled = false; return; }
+        await afterLogin(data.session);
+      } else {
+        const { data, error } = await A.sb.auth.signInWithPassword({ email, password }); if (error) throw error;
+        await afterLogin(data.session);
+      }
+    } catch (x) { authMsg(frErr(x), true); btn.disabled = false; }
+  };
+}
+async function fetchProfile() {
+  const { data } = await A.sb.from('profiles').select('*').eq('id', A.session.user.id).maybeSingle(); return data || null;
+}
+let booted = false;
+async function afterLogin(session) {
+  A.session = session;
+  let p = null; for (let i = 0; i < 4 && !p; i++) { p = await fetchProfile(); if (!p) await new Promise(r => setTimeout(r, 700)); }
+  A.profile = p || { role: 'pending', name: '' };
+  if (A.profile.role === 'pending') { showAuth('pending'); return; }
+  hideAuth();
+  if (booted) return; booted = true;
+  window.claude = { use: async n => n === 'db' ? makeDb() : n === 'user' ? makeUser() : null };
+  init();
+}
+async function boot() {
+  if (!CFG.supabaseUrl || /VOTRE|xxxx/i.test(CFG.supabaseUrl) || !window.supabase) { showAuth('config'); return; }
+  const sbUrl = String(CFG.supabaseUrl).trim().replace(/\/(rest|auth|realtime|storage)\/v1.*$/i, '').replace(/\/+$/, ''); // tolère une adresse copiée avec /rest/v1/
+  A.sb = window.supabase.createClient(sbUrl, String(CFG.supabaseAnonKey).trim(), { auth: { persistSession: true, autoRefreshToken: true } });
+  A.sb.auth.onAuthStateChange((ev, s) => { if (ev === 'SIGNED_OUT') { history.replaceState(null, '', location.pathname); location.reload(); } else if (s) A.session = s; });
+  const { data: { session } } = await A.sb.auth.getSession();
+  if (!session) { showAuth('login'); return; }
+  try { await afterLogin(session); } catch (e) { showAuth('login'); }
+}
+
+/* ---------- page « Accès » (administrateurs) ---------- */
+S.profiles = new Map();
+function subProfiles() {
+  const load = async () => { const { data } = await A.sb.from('profiles').select('*').order('created_at'); S.profiles = new Map((data || []).map(p => [p.id, p])); schedRender(); };
+  load(); A.sb.channel('profiles-' + uid()).on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, load).subscribe();
+}
+function viewAccess() {
+  if (!S.isOwner) return `<div class="empty"><b>Réservé aux administrateurs</b>Demandez à un administrateur de gérer les accès.</div>`;
+  const ps = [...S.profiles.values()]; const pend = ps.filter(p => p.role === 'pending');
+  const row = p => `<tr><td><b>${esc(p.name || '—')}</b>${p.id === S.meId ? ' <span class="muted">(vous)</span>' : ''}</td><td class="muted">${esc(p.email || '')}</td><td class="num muted">${new Date(p.created_at).toLocaleDateString('fr-FR')}</td>
+    <td><select class="f" data-role="${p.id}" style="width:170px" ${p.id === S.meId ? 'disabled' : ''}>${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${p.role === k ? 'selected' : ''}>${l}</option>`).join('')}</select></td></tr>`;
+  return `<div class="ph"><div><div class="eyebrow">Réglages</div><h1 class="t">Accès des coachs</h1><div class="sub">Envoyez le lien de l’application aux coachs : ils créent leur compte, puis vous leur donnez un rôle ici.</div></div>
+    <div class="acts"><button class="btn" id="cpLink">Copier le lien de l’application</button></div></div>
+    ${pend.length ? `<div class="banner">${pend.length} compte${pend.length > 1 ? 's' : ''} en attente de validation.</div>` : ''}
+    <div class="card tbwrap"><table class="tb"><thead><tr><th>Nom</th><th>E-mail</th><th>Inscrit le</th><th>Rôle</th></tr></thead><tbody>${ps.map(row).join('')}</tbody></table></div>
+    <div class="note" style="margin-top:14px"><b>Lecteur</b> : consulte tout, sans modifier. <b>Coach</b> : ajoute joueurs, séances, données, vidéos et annotations. <b>Administrateur</b> : comme un coach, et gère les accès. Remettre « En attente » retire l’accès.</div>`;
+}
+function bindAccess(m) {
+  $$('[data-role]', m).forEach(s => s.onchange = async () => {
+    const { error } = await A.sb.from('profiles').update({ role: s.value }).eq('id', s.dataset.role);
+    if (error) toast('Modification refusée : ' + error.message, { err: true }); else { toast('Rôle mis à jour : ' + ROLES[s.value]); const p = S.profiles.get(s.dataset.role); if (p) p.role = s.value; }
+  });
+  const c = $('#cpLink', m); if (c) c.onclick = async () => { const u = location.origin + location.pathname; try { await navigator.clipboard.writeText(u); toast('Lien copié : ' + u); } catch (e) { toast(u); } };
+}
+boot();
+
+</script>
+</body>
+</html>
